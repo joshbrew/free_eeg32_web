@@ -87,7 +87,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			return true;
 			//Continue
 		}
-		else {this.buffer = []; return false;}
+		else {this.buffer = []; return false;} 
 	}
 
 	//Callbacks
