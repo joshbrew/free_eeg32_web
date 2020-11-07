@@ -12,7 +12,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
         this.startByte = 160; // Start byte value
 	this.stopByte = 192; // Stop byte value
 	this.searchString = new Uint8Array([this.stopByte,this.startByte]);
-	this.counter = 0;
+	
 	this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
 		counter: 0,
 		ms: [],
