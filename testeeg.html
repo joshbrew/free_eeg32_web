@@ -49,6 +49,8 @@
       }
       posMagsList = GPU.MultiChannelDFT_BandPass(buffer, 1, freqStart, freqEnd);
 
+      //update visual
+
       setTimeout(()=>{requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
     }
   }
