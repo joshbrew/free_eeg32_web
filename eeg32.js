@@ -57,7 +57,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		for (var i = search(haystack); i !== -1; i = search(haystack, i + skip)) {
 			indices.push(i);
 		}
-		console.log(indices);
+		//console.log(indices);
 
 		if(indices.length >= 2){
 			var line = buffer.splice(indices[0],indices[1]-indices[0]); //Splice out this line to be decoded
@@ -85,7 +85,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			return true;
 			//Continue
 		}
-		else {return false;}
+		else {this.buffer = []; return false;}
 	}
 
 	//Callbacks
@@ -100,7 +100,8 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	onReceive(value){
 		this.buffer.push(...value);
 
-		while (this.buffer.length >= 105) {
+		while (this.buffer.length > 209) {
+			//console.log("decoding... ", this.buffer.length)
 			this.decode();	
 		}
 		this.onDecoded();
@@ -119,6 +120,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			const reader = port.readable.getReader();
 			try {
 				while (true) {
+				//console.log("reading...");
 				const { value, done } = await reader.read();
 				if (done) {
 					// Allow the serial port to be closed later.
