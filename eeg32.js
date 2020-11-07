@@ -28,14 +28,13 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			alert("navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental')")
 		}
 		this.port = null;
-
-	}
+    }
 	
-	bytesToInt16(x0,x1){
-		return x0 * 256 + x1;
-	}
+    bytesToInt16(x0,x1){
+	return x0 * 256 + x1;
+    }
 
-	int16ToBytes(y){ //Turns a 24 bit int into a 3 byte sequence
+    int16ToBytes(y){ //Turns a 24 bit int into a 3 byte sequence
         return [y & 0xFF , (y >> 8) & 0xFF];
     }
 
