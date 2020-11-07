@@ -37,8 +37,8 @@
     var freqStart = 0; //Beginning of DFT frequencies
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
-    var posMagsList = []; // amplitudes
-    var bandPassWindow = GPU.bandPassWindow(freqStart,freqEnd,sps); // x-axis
+    var posMagsList = []; // amplitudes (y-axis)
+    var bandPassWindow = GPU.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
     var analyzeEEG = () => {
       var buffer = [];
