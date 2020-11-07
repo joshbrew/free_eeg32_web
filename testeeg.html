@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><script src="eeg32.js"></script></head>
+<body>
+<p>
+  Enable the experimental web platform features flag in chrome://flags and restart chrome if you haven't. <br>
+  Open the console, type EEG.setupSerialAsync() to connect to the data stream with the EEG plugged in. <br>
+  Check EEG.data for decoded data <br>
+  If it returns true it decoded a line successfully into EEG.data :-)
+</p>
+<script>
+
+
+if(!navigator.serial){
+    alert("navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental')");
+}
+else{
+    alert("FYI I only got this working for the FreeEEG32 in Ubuntu so far!!!");
+}
+
+try {var EEG = new eeg32();}
+catch {alert("eeg32.js not found, make sure it's in the same folder as this html file!!!")}
+
+
+
+</script>
+</body>
+</html>
