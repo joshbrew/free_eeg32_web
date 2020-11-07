@@ -13,7 +13,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	this.stopByte = 192; // Stop byte value
 	this.searchString = new Uint8Array([this.stopByte,this.startByte]);
 	this.counter = 0;
-	this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this..data.counter-1]
+	this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
 		counter: 0,
 		ms: [],
 		'A0': [],'A1': [],'A2': [],'A3': [],'A4': [],'A5': [],'A6': [],'A7': [], //ADC 0
@@ -114,7 +114,6 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		this.onConnectedCallback();
 		this.subscribe(port);
 	}
-
 
 	async subscribe(port){
 		while (this.port.readable) {
