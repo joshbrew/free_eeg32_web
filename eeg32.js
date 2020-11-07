@@ -107,9 +107,9 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		this.onDecoded();
 	}
 
-	async onPortSelected(port) {
-		try {await port.open({ baudRate: 921600, bufferSize: 65536 });} //API inconsistency in syntax between linux and windows
-		catch {await port.open({ baudrate: 921600, bufferSize: 65536 });}
+	async onPortSelected(port,baud) {
+		try {await port.open({ baudRate: baud, bufferSize: 65536 });} //API inconsistency in syntax between linux and windows
+		catch {await port.open({ baudrate: baud, bufferSize: 65536 });}
 		this.onConnectedCallback();
 		this.subscribe(port);
 	}
@@ -144,7 +144,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		this.port = null; 
 	}
 
-	async setupSerialAsync() {
+	async setupSerialAsync(baudrate=921600) { //You can specify baudrate just in case
 
 		const filters = [
 			{ usbVendorId: 0x10c4, usbProductId: 0x0043 } //CP2102 filter (e.g. for UART via ESP32)
@@ -154,7 +154,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		navigator.serial.addEventListener("disconnect",(e) => {
 			this.closePort();
 		})
-		this.onPortSelected(this.port);
+		this.onPortSelected(this.port,baudrate);
 		
 	}
 
