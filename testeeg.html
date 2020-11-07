@@ -2,8 +2,11 @@
 <html>
 <head>
   <script src="eeg32.js"></script>
-  <script src="gpu-browser.min.js" charset="UTF-8"></script>
-  <script src="gpuJSUtils.js"></script>
+  <script src="./other/gpu-browser.min.js" charset="UTF-8"></script>
+  <script src="./other/gpuJSUtils.js"></script>
+  
+  <script src="./other/d3.v5.min.js"></script>
+  <script src="./other/plotly-latest.min.js"></script>
 </head>
 <body>
 <p>
@@ -13,6 +16,8 @@
   If it returns true it decoded a line successfully into EEG.data :-)
 </p>
 <hr>
+<h3>Change 'channelToPlot' in console to visualize different channel results while running</h3>
+<div id="plotDiv"></div>
 
 <script>
 
@@ -29,7 +34,7 @@
 
   try {
   
-    var GPU = new gpuUtils();
+    var gpu = new gpuUtils();
 
     var nChannels = 32; //Number of channels to sample
     var sps = 512; //Samples per second
@@ -38,24 +43,93 @@
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
     var posMagsList = []; // amplitudes (y-axis)
-    var bandPassWindow = GPU.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
+    var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
+
+    var channelToPlot = 0;
 
     var analyzeEEG = () => {
       var buffer = [];
-      var ct = EEG.data.counter;
+      //var ct = EEG.data.counter;
       for(var i = 0; i < channels; i++){
         var channel = "A"+i
         buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter));
       }
-      posMagsList = GPU.MultiChannelDFT_BandPass(buffer, 1, freqStart, freqEnd);
+      posMagsList = gpu.MultiChannelDFT_BandPass(buffer, 1, freqStart, freqEnd);
 
-      //update visual
+      //Separate and report channel results by band
+      //channelBands(channelToPlot);
+
+      Plotly.animate('plotDiv', 
+        {
+          data: [{y: posMagsList[channelToPlot]}],
+          traces: [0],
+          layout: {}
+        }, 
+        {
+          transition: {
+            duration: 20,
+            easing: 'cubic-in-out'
+          }, 
+          frame: {
+            duration: 20
+          }
+        });
+
+      //Update visual
 
       setTimeout(()=>{requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
     }
-  }
-  catch{ alert("gpu.js utils error"); }
 
+    var delta = [], theta = [], alpha = [], beta = [], gamma = []; //x axis values and indices for named 
+    bandPassWindow.forEach((item,idx) => {
+      if((item >= 0.5) && (item <= 4)){
+        delta.push([item,idx]);
+      }
+      if((item > 4) && (item <= 8)) {
+        theta.push([item,idx]);
+      }
+      if((item > 8) && (item <= 12)){
+        alpha.push([item,idx]);
+      }
+      if((item > 12) && (item <= 35)){
+        beta.push([item, idx]);
+      }
+      if(item > 35) {
+        gamma.push([item, idx]);
+      }
+    });
+    
+    var deltaAmps = new Array(nChannels), thetaAmps = new Array(nChannels), alphaAmps = new Array(nChannels), betaAmps = new Array(nChannels), gammaAmps = new Array(nChannels);
+    var deltaMean = new Array(nChannels), thetaMean = new Array(nChannels), alphaMean = new Array(nChannels), betaMean = new Array(nChannels), gammaMean = new Array(nChannels);
+
+
+    //This should be better optimized for animating e.g. integrated into a shader
+    var channelBands = (channel) => {
+         deltaAmps[channel] = posMagsList[channel].slice(delta[0][1],delta[delta.length][1]);
+         deltaMean[channel] = mean(deltaAmps);
+         thetaAmps[channel] = posMagsList[channel].slice(theta[0][1],theta[theta.length][1]);
+         thetaMean[channel] = mean(thetaAmps);
+         alphaAmps[channel] = posMagsList[channel].slice(alpha[0][1],alpha[alpha.length][1]);
+         alphaMean[channel] = mean(alphaAmps);
+         betaAmps[channel]  = posMagsList[channel].slice( beta[0][1],  beta[beta.length][1]);
+         betaMean[channel]  = mean(betaAmps);
+    }
+
+  }
+  catch (err) { console.log("gpu.js utils error: ", err); }
+
+  Plotly.newPlot('plotDiv', [{
+      x: bandPassWindow,
+      y: bandPassWindow //change to e.g. posMagsList[0]
+    }]);
+
+  function mean(arr){
+    var sum = arr.reduce((prev,curr)=> curr += prev);
+    return sum / arr.length;
+  }
+
+  //E.g. for gamma only do 'var alphaAmps = posMagsList[0].slice(alpha[0][1],alpha[alpha.length][1]);'
+  //To average a particular band, do 'var alphaMean = mean(alpha);'
 
 </script>
 </body>
