@@ -10,24 +10,25 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
         */
         this.buffer = []; 
         this.startByte = 160; // Start byte value
-	this.stopByte = 192; // Stop byte value
-	this.searchString = new Uint8Array([this.stopByte,this.startByte]);
-	
-	this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
-		counter: 0,
-		ms: [],
-		'A0': [],'A1': [],'A2': [],'A3': [],'A4': [],'A5': [],'A6': [],'A7': [], //ADC 0
-		'A8': [],'A9': [],'A10': [],'A11': [],'A12': [],'A13': [],'A14': [],'A15': [], //ADC 1
-		'A16': [],'A17': [],'A18': [],'A19': [],'A20': [],'A21': [],'A22': [],'A23': [], //ADC 2
-		'A24': [],'A25': [],'A26': [],'A27': [],'A28': [],'A29': [],'A30': [],'A31': [], //ADC 3
-		'Ax': [], 'Ay': [], 'Az': [], 'Gx': [], 'Gy': [], 'Gz': []  //Peripheral data (accelerometer, gyroscope)
-	}
+		this.stopByte = 192; // Stop byte value
+		this.searchString = new Uint8Array([this.stopByte,this.startByte]);
+		
+		this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
+			counter: 0,
+			ms: [],
+			'A0': [],'A1': [],'A2': [],'A3': [],'A4': [],'A5': [],'A6': [],'A7': [], //ADC 0
+			'A8': [],'A9': [],'A10': [],'A11': [],'A12': [],'A13': [],'A14': [],'A15': [], //ADC 1
+			'A16': [],'A17': [],'A18': [],'A19': [],'A20': [],'A21': [],'A22': [],'A23': [], //ADC 2
+			'A24': [],'A25': [],'A26': [],'A27': [],'A28': [],'A29': [],'A30': [],'A31': [], //ADC 3
+			'Ax': [], 'Ay': [], 'Az': [], 'Gx': [], 'Gy': [], 'Gz': []  //Peripheral data (accelerometer, gyroscope)
+		}
 
-	//navigator.serial utils
-	if(!navigator.serial){
-		alert("navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental')")
-	}
-	this.port = null;
+		//navigator.serial utils
+		if(!navigator.serial){
+			alert("navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental')")
+		}
+		this.port = null;
+
     }
 	
     bytesToInt16(x0,x1){
@@ -243,5 +244,51 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	}
 	//---------------------end copy/pasted solution------------------------
 
+	//EEG Atlas generator
+	newCoord(x,y,z,amplitudes=[],means={delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}){
+		return {x: x, y:y, z:z, amplitudes:amplitudes, means:means}
+	}
+
+	//Input arrays of corresponding tags, xyz coordinates as Array(3) objects, and DFT amplitudes (optional).
+	newAtlas(tags=["Fp1","Fp2"], coords = [[-21.5, 70.2,-0.1],[28.4,69.1,-0.4]],amplitudes=undefined,means=null){
+		var newLayout = [];
+		tags.forEach((tag,i) => {
+			if (amplitudes === undefined) {
+				newLayout.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],undefined,undefined)});
+			}
+			else{
+				newLayout.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],amplitudes[i],means[i])});
+			}
+		});
+		return newLayout;
+	}
+
+	//Returns a 10_20 atlas object with structure { "Fp1": {x,y,z,amplitudes[]}, "Fp2" : {...}, ...}
+	makeAtlas10_20(){
+		// 19 channel coordinate space. 
+		// Based on MNI atlas. 
+		return [
+			{tag:"Fp1", data: { x: -21.5, y: 70.2, z: -0.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
+			{tag:"Fp2", data: { x: 28.4, y: 69.1, z: -0.4, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
+			{tag:"Fz", data: { x: 0.6, y: 40.9, z: 53.9, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
+			{tag:"F3", data: { x: -35.5, y: 49.4, z: 32.4, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
+			{tag:"F4", data: { x: 40.2, y: 47.6, z: 32.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"F7", data: { x: -54.8, y: 33.9, z: -3.5, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
+			{tag:"F8", data: { x: 56.6, y: 30.8, z: -4.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"Cz", data: { x: 0.8, y: -14.7, z: 73.9, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
+			{tag:"C3", data: { x: -52.2, y: -16.4, z: 57.8, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"C4", data: { x: 54.1, y: -18.0, z: 57.5, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"T3", data: { x: -70.2, y: -21.3, z: -10.7,amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"T4", data: { x: 71.9, y: -25.2, z: -8.2, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"Pz", data: { x: 0.2, y: -62.1, z: 64.5, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"P3", data: { x: -39.5, y: -76.3, z: 47.4, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
+			{tag:"P4", data: { x: 36.8, y: -74.9, z: 49.2, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"T5", data: { x: -61.5, y: -65.3, z: 1.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"T6", data: { x: 59.3, y: -67.6, z: 3.8, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"O1", data: { x: -26.8, y: -100.2, z: 12.8, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+			{tag:"O2", data: { x: 24.1, y: -100.5, z: 14., amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
+		]
+
+	}
 
 }
