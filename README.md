@@ -5,4 +5,5 @@ Open testeeg.html and follow the instructions. So far only tested to work on Ubu
 
 There is also my own GPU FFT solution in testeeg.html which is fast enough to run a bandpass FFT on all channels simultaneously in less than 50ms - 100ms on average (tested on RTX 2060). I'll make an animation to demo real time browser visualization.
 
+![EEG](stream.png)
 
