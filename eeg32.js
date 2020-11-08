@@ -1,4 +1,4 @@
-
+//Joshua Brewster, AGPL (copyleft)
 
 class eeg32 { //Contains structs and necessary functions/API calls to analyze serial data for the FreeEEG32
     constructor() {
