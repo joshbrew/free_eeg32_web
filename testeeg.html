@@ -14,15 +14,22 @@
   Enable the experimental web platform features flag in chrome://flags and restart chrome if you haven't. <br>
   Open the console, type EEG.setupSerialAsync() to connect to the data stream with the EEG plugged in. <br>
   Check EEG.data for decoded data <br>
-  If EEG.decode() returns true it decoded a line successfully into EEG.data :-)
+  If EEG.decode() returns true it decoded a line successfully into EEG.data :-) 
+  Plotly is a terrible lib for this...
 </p>
 <hr>
-<h3>Change 'channelToPlot' in console to visualize different channel results while running</h3>
-<div id="line"></div>
+<button id="connect">Connect to EEG</button>
+<button id="analyze">Analyze Data</button>
+<h3>ADC 0 FFT 0-100Hz Bandpass</h3>
+<div id="adc0"></div>
+<h3>Alpha Band Amplitudes</h3>
+<div id="adc0alpha"></div>
 <div id="contour"></div>
 
 <script>
+  document.getElementById("connect").onclick = () => {EEG.setupSerialAsync();}
 
+  document.getElementById("analyze").onclick = () => {if(EEG.port !== null){analyzeEEG();} else{alert("connect the EEG first!")}}
 
   if(!navigator.serial){
       document.getElementById("p").innerHTML = "navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental') then refresh";
@@ -46,34 +53,38 @@
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
 
-    var deltaFreqs = [], thetaFreqs = [], alphaFreqs = [], betaFreqs = [], gammaFreqs = []; //x axis values and indices for named EEG frequency bands
+    var deltaFreqs = [[],[]], thetaFreqs = [[],[]], alphaFreqs = [[],[]], betaFreqs = [[],[]], gammaFreqs = [[],[]]; //x axis values and indices for named EEG frequency bands
     bandPassWindow.forEach((item,idx) => {
       if((item >= 0.5) && (item <= 4)){
-        deltaFreqs.push([item,idx]);
+        deltaFreqs[0].push(item); deltaFreqs[1].push(idx);
       }
       if((item > 4) && (item <= 8)) {
-        thetaFreqs.push([item,idx]);
+        thetaFreqs[0].push(item); thetaFreqs[1].push(idx);
       }
       if((item > 8) && (item <= 12)){
-        alphaFreqs.push([item,idx]);
+	console.log(idx);
+        alphaFreqs[0].push(item); alphaFreqs[1].push(idx);
       }
       if((item > 12) && (item <= 35)){
-        betaFreqs.push([item, idx]);
+        betaFreqs[0].push(item); betaFreqs[1].push(idx);
       }
       if(item > 35) {
-        gammaFreqs.push([item, idx]);
+        gammaFreqs[0].push(item); gammaFreqs[1].push(idx);
       }
     });
     
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
-    var channelTags = [ //This is probably not correct for differential channels, still learning here
+    var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       "Fp1", //Channel 0
-      null,  //Channel 1
-      "Fp2"  //Channel 2
+      "Fp1",  //Channel 1
+      "Fpz",  //Channel 2
+      "F3",
+      "F4",
+      "F7",
+      "F8",
+      "Cz"
     ]; 
 
-    var channelToPlot = 0;
-    
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
 
     function mean(arr){
@@ -94,18 +105,24 @@
 
     var coords = getAtlasCoordsList(atlas);
 
-    Plotly.newPlot('line', [{
+    Plotly.newPlot('adc0', [{
         x: bandPassWindow,
         y: bandPassWindow //change to e.g. posMagsList[0]
       }]);
 
-    Plotly.newPlot('contour', [{
-      x: coords.x,
-      y: coords.y,
-      z: coords.z,
-      type: 'scatter3d'
-      }]);
+    Plotly.newPlot('adc0alpha', [{
+      x: alphaFreqs[0],
+      y: alphaFreqs[1] //change to e.g. posMagsList[1]
+    }]);
 
+    /*
+      Plotly.newPlot('contour', [{
+        x: coords.x,
+        y: coords.y,
+        z: coords.z,
+        type: 'scatter3d'
+      }]);
+    */
 
 
     //Looping animation to analyze channel data and update plots
@@ -116,63 +133,82 @@
         var channel = "A"+i
         buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter)); //Lets get 1 second of the latest data
       }
+      console.time("GPU DFTx32");
       posMagsList = gpu.MultiChannelDFT_BandPass(buffer, 1, freqStart, freqEnd);
-
+      console.timeEnd("GPU DFTx32");
       //Separate and report channel results by band
       channelTags.forEach((tag,i) => {
         if((tag !== null) && (i < nChannels)){
+	  //console.log(tag);
           channelBands(i,tag);
         }
-      })
+      });
 
       //Update visuals
 
       //Animate plot(s)
-      Plotly.animate('line', 
+      Plotly.newPlot('adc0', 
         {
-          data: [{y: posMagsList[channelToPlot]}],
-          traces: [0],
-          layout: {}
-        }, 
+          data: [
+{x:bandPassWindow, y: posMagsList[0]},
+{x:bandPassWindow, y:posMagsList[1]},
+{x:bandPassWindow, y:posMagsList[2]},
+{x:bandPassWindow, y:posMagsList[3]},
+{x:bandPassWindow, y:posMagsList[4]},
+{x:bandPassWindow, y:posMagsList[5]},
+{x:bandPassWindow, y:posMagsList[6]},
+{x:bandPassWindow, y:posMagsList[7]}
+],
+        },{ transition: {duration: 10}},{frame: {duration:10}});
+
+
+Plotly.newPlot('adc0alpha', 
         {
-          transition: {
-            duration: 20,
-            easing: 'cubic-in-out'
-          }, 
-          frame: {
-            duration: 20
-          }
-        });
+          data: [
+{x:alphaFreqs[0], y: atlas[0].data.slices.alpha[atlas[0].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[1].data.slices.alpha[atlas[1].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[2].data.slices.alpha[atlas[2].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[3].data.slices.alpha[atlas[3].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[4].data.slices.alpha[atlas[4].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[5].data.slices.alpha[atlas[5].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[6].data.slices.alpha[atlas[6].data.slices.alpha.length-1]},
+{x:alphaFreqs[0], y: atlas[7].data.slices.alpha[atlas[7].data.slices.alpha.length-1]}
+],
+        },{ transition: {duration: 10}},{frame: {duration:10}});
 
       //Plotly.animate('contour',{});
-
-      setTimeout(()=>{requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
+      setTimeout(()=>{requestAnimationFrame(analyzeEEG);},500); //Hard fps limit
     }
 
 
     //This should be better optimized for animating e.g. integrated into a shader
     var channelBands = (channel,tag) => {
+	//console.time("slicing bands");
       let atlasCoord = atlas.find((o, i) => {
         if(o.tag === tag){
-          atlas[i].data.amplitudes = posMagsList[channel];
-          var delta = posMagsList[channel].slice(deltaFreqs[0][1],deltaFreqs.length);
-          atlas[i].data.means.delta =  mean(delta);
-          var theta = posMagsList[channel].slice(thetaFreqs[0][1],thetaFreqs.length);
-          atlas[i].data.means.theta = mean(theta);
-          var alpha = posMagsList[channel].slice(alphaFreqs[0][1],alphaFreqs.length);
-          atlas[i].data.means.alpha = mean(alpha);
-          var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs.length);
-          atlas[i].data.means.beta  = mean(beta);
-          var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs.length)
-          atlas[i].data.means.gamma = mean(gamma)
+	  atlas[i].data.times.push(performance.now());
+          atlas[i].data.amplitudes.push(posMagsList[channel]);
+          var delta = posMagsList[channel].slice( deltaFreqs[0][1], deltaFreqs[1][deltaFreqs[1].length-1]);
+	  atlas[i].data.slices.delta.push(delta);
+          atlas[i].data.means.delta.push(mean(delta));
+          var theta = posMagsList[channel].slice( thetaFreqs[0][1], thetaFreqs[1][thetaFreqs[1].length-1]);
+	  atlas[i].data.slices.theta.push(theta);
+          atlas[i].data.means.theta.push(mean(theta));
+          var alpha = posMagsList[channel].slice( alphaFreqs[0][1], alphaFreqs[1][alphaFreqs[1].length-1]);
+	  atlas[i].data.slices.alpha.push(alpha);
+          atlas[i].data.means.alpha.push(mean(alpha));
+          var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs[1][betaFreqs[1].length-1]);
+	  atlas[i].data.slices.beta.push(beta);
+          atlas[i].data.means.beta.push(mean(beta));
+          var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs[1][gammaFreqs[1].length-1]);
+	  atlas[i].data.slices.gamma.push(gamma);
+          atlas[i].data.means.gamma.push(mean(gamma));
+	  //console.timeEnd("slicing bands");
           return true;
         }
       });
       
     }
-
-
-  
 
     //Next do a 10-20 or 32 ch contour plot with a way to set the channels
 
