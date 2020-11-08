@@ -270,7 +270,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		return [
 			{tag:"Fp1", data: { x: -21.5, y: 70.2, z: -0.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
 			{tag:"Fp2", data: { x: 28.4, y: 69.1, z: -0.4, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
-			{tag:"Fz", data: { x: 0.6, y: 40.9, z: 53.9, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
+			{tag:"Fz",  data: { x: 0.6, y: 40.9, z: 53.9, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
 			{tag:"F3", data: { x: -35.5, y: 49.4, z: 32.4, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}, 
 			{tag:"F4", data: { x: 40.2, y: 47.6, z: 32.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
 			{tag:"F7", data: { x: -54.8, y: 33.9, z: -3.5, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},
@@ -286,8 +286,8 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			{tag:"T5", data: { x: -61.5, y: -65.3, z: 1.1, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
 			{tag:"T6", data: { x: 59.3, y: -67.6, z: 3.8, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
 			{tag:"O1", data: { x: -26.8, y: -100.2, z: 12.8, amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
-			{tag:"O2", data: { x: 24.1, y: -100.5, z: 14., amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}},  
-		]
+			{tag:"O2", data: { x: 24.1, y: -100.5, z: 14., amplitudes: [], means: {delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0}}}  
+		];
 
 	}
 

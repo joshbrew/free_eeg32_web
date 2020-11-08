@@ -32,8 +32,9 @@
   catch (error) { alert("eeg32.js err: ", error) }
 
   try {
-  
-    var gpu = new gpuUtils();
+    window.gpu = new gpuUtils();
+  }
+  catch (err) { alert("gpu.js utils error: ", err); }
 
     var nChannels = 32; //Number of channels to sample
     var sps = 512; //Samples per second
@@ -48,19 +49,19 @@
     var deltaFreqs = [], thetaFreqs = [], alphaFreqs = [], betaFreqs = [], gammaFreqs = []; //x axis values and indices for named EEG frequency bands
     bandPassWindow.forEach((item,idx) => {
       if((item >= 0.5) && (item <= 4)){
-        delta.push([item,idx]);
+        deltaFreqs.push([item,idx]);
       }
       if((item > 4) && (item <= 8)) {
-        theta.push([item,idx]);
+        thetaFreqs.push([item,idx]);
       }
       if((item > 8) && (item <= 12)){
-        alpha.push([item,idx]);
+        alphaFreqs.push([item,idx]);
       }
       if((item > 12) && (item <= 35)){
-        beta.push([item, idx]);
+        betaFreqs.push([item, idx]);
       }
       if(item > 35) {
-        gamma.push([item, idx]);
+        gammaFreqs.push([item, idx]);
       }
     });
     
@@ -74,6 +75,38 @@
     var channelToPlot = 0;
     
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
+
+    function mean(arr){
+      var sum = arr.reduce((prev,curr)=> curr += prev);
+      return sum / arr.length;
+    }
+
+    function getAtlasCoordsList(fromAtlas) {
+      var coords = {x: [], y: [], z: []};
+      for(var i = 0; i< fromAtlas.length; i++) {
+        coords.x.push(fromAtlas[i].data.x);
+        coords.y.push(fromAtlas[i].data.y);
+        coords.z.push(fromAtlas[i].data.z);
+      }
+
+      return coords;
+    }
+
+    var coords = getAtlasCoordsList(atlas);
+
+    Plotly.newPlot('line', [{
+        x: bandPassWindow,
+        y: bandPassWindow //change to e.g. posMagsList[0]
+      }]);
+
+    Plotly.newPlot('contour', [{
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
+      type: 'scatter3d'
+      }]);
+
+
 
     //Looping animation to analyze channel data and update plots
     var analyzeEEG = () => {
@@ -122,15 +155,15 @@
       let atlasCoord = atlas.find((o, i) => {
         if(o.tag === tag){
           atlas[i].data.amplitudes = posMagsList[channel];
-          var delta = posMagsList[channel].slice(delta[0][1],delta.length);
+          var delta = posMagsList[channel].slice(deltaFreqs[0][1],deltaFreqs.length);
           atlas[i].data.means.delta =  mean(delta);
-          var theta = posMagsList[channel].slice(theta[0][1],theta.length);
+          var theta = posMagsList[channel].slice(thetaFreqs[0][1],thetaFreqs.length);
           atlas[i].data.means.theta = mean(theta);
-          var alpha = posMagsList[channel].slice(alpha[0][1],alpha.length);
+          var alpha = posMagsList[channel].slice(alphaFreqs[0][1],alphaFreqs.length);
           atlas[i].data.means.alpha = mean(alpha);
-          var beta  = posMagsList[channel].slice( beta[0][1],  beta.length);
+          var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs.length);
           atlas[i].data.means.beta  = mean(beta);
-          var gamma = posMagsList[channel].slice( gamma[0][1], gamma.length)
+          var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs.length)
           atlas[i].data.means.gamma = mean(gamma)
           return true;
         }
@@ -138,30 +171,14 @@
       
     }
 
-  }
-  catch (err) { alert("gpu.js utils error: ", err); }
 
-  function mean(arr){
-    var sum = arr.reduce((prev,curr)=> curr += prev);
-    return sum / arr.length;
-  }
-
-  Plotly.newPlot('line', [{
-      x: bandPassWindow,
-      y: bandPassWindow //change to e.g. posMagsList[0]
-    }]);
-
-  Plotly.newPlot('contour', [{
-     // x: bandPassWindow,
-      //y: bandPassWindow //change to e.g. posMagsList[0]
-    }]);
-
+  
 
     //Next do a 10-20 or 32 ch contour plot with a way to set the channels
 
 
-  //E.g. for gamma only do 'var alphaAmps = posMagsList[0].slice(alpha[0][1],alpha[alpha.length][1]);'
-  //To average a particular band, do 'var alphaMean = mean(alpha);'
+  //E.g. for gamma only do 'var gamma = posMagsList[0].slice(gamma[0][1],gamma[alpha.length][1]);'
+  //To average a particular band, do 'var gammaMean = mean(gamma);'
 
 </script>
 </body>
