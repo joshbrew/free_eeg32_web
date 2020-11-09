@@ -82,7 +82,7 @@
 
     var anim = null;
 
-    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = analyzeEEG();} else{alert("connect the EEG first!")}}
+    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = requestAnimationFrame(analyzeEEG());} else{alert("connect the EEG first!")}}
 
     document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim) }
 
@@ -364,7 +364,7 @@
       alphaSeries7.append(now, atlas[7].data.means.alpha[atlas[7].data.means.alpha.length-1]);
       
 
-      setTimeout(()=>{requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
+      setTimeout(()=>{anim = requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
     }
 
 
