@@ -107,10 +107,12 @@
       if(mode === "FFT"){
         mode = "TimeSeries";
         document.getElementById("uplottitle").innerHTML = "ADC0 signals";
+	uPlot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
       else {
         mode = "FFT";
         document.getElementById("uplottitle").innerHTML = "ADC 0 FFTs w/ Bandpass";
+	uPlot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
       }
     }
 
@@ -138,7 +140,7 @@
     //Make uPlot (will need to generalize this stuff for an nicer API to plot selected areas)
     var uPlotOptions = {
       title: "ADC0",
-      width: 600,
+      width: 1000,
       height: 300,
       series: [
         {},
@@ -325,7 +327,7 @@
       }
 
       else if (mode === "TimeSeries") {
-        var nsamples = Math.floor(sps*nSec);
+        var nsamples = Math.floor(sps*10);
         uPlotData = [
           EEG.data.ms.slice(EEG.data.counter - nsamples, EEG.data.counter),
           EEG.data["A0"].slice(EEG.data.counter - nsamples, EEG.data.counter),

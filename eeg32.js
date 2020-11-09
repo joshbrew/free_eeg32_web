@@ -12,10 +12,11 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
         this.startByte = 160; // Start byte value
 		this.stopByte = 192; // Stop byte value
 		this.searchString = new Uint8Array([this.stopByte,this.startByte]);
+		this.updateMs = 1000/512;
 		
 		this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
 			counter: 0,
-			ms: [],
+			ms: [performance.now()],
 			'A0': [],'A1': [],'A2': [],'A3': [],'A4': [],'A5': [],'A6': [],'A7': [], //ADC 0
 			'A8': [],'A9': [],'A10': [],'A11': [],'A12': [],'A13': [],'A14': [],'A15': [], //ADC 1
 			'A16': [],'A17': [],'A18': [],'A19': [],'A20': [],'A21': [],'A22': [],'A23': [], //ADC 2
@@ -73,7 +74,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 			//line found, decode.
 			this.data.counter++; 
-			this.data.ms.push(performance.now());//Might not be accurate to the exact sample timing
+			this.data.ms.push(this.data.ms[this.data.ms.length - 1]+this.updateMs);//Assume no dropped samples 
 
 			for(var i = 3; i < 99; i+=3) {
 				var channel = "A"+(i-3)/3;
