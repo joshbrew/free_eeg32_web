@@ -97,6 +97,7 @@
       freqEnd = freq1;
       bandPassWindow = gpu.bandPassWindow(freq0,freq1,sps);
 
+      getBandFreqs(); //Update bands accessed by the atlas for averaging
     }
 
     document.getElementById("mode").onclick = () => {
@@ -115,24 +116,28 @@
 
 
     var deltaFreqs = [[],[]], thetaFreqs = [[],[]], alphaFreqs = [[],[]], betaFreqs = [[],[]], gammaFreqs = [[],[]]; //x axis values and indices for named EEG frequency bands
-    bandPassWindow.forEach((item,idx) => {
-      if((item >= 0.5) && (item <= 4)){
-        deltaFreqs[0].push(item); deltaFreqs[1].push(idx);
-      }
-      if((item > 4) && (item <= 8)) {
-        thetaFreqs[0].push(item); thetaFreqs[1].push(idx);
-      }
-      if((item > 8) && (item <= 12)){
-        alphaFreqs[0].push(item); alphaFreqs[1].push(idx);
-      }
-      if((item > 12) && (item <= 35)){
-        betaFreqs[0].push(item); betaFreqs[1].push(idx);
-      }
-      if(item > 35) {
-        gammaFreqs[0].push(item); gammaFreqs[1].push(idx);
-      }
-    });
-    
+    var getBandFreqs = () => {
+      bandPassWindow.forEach((item,idx) => {
+        if((item >= 0.5) && (item <= 4)){
+          deltaFreqs[0].push(item); deltaFreqs[1].push(idx);
+        }
+        if((item > 4) && (item <= 8)) {
+          thetaFreqs[0].push(item); thetaFreqs[1].push(idx);
+        }
+        if((item > 8) && (item <= 12)){
+          alphaFreqs[0].push(item); alphaFreqs[1].push(idx);
+        }
+        if((item > 12) && (item <= 35)){
+          betaFreqs[0].push(item); betaFreqs[1].push(idx);
+        }
+        if(item > 35) {
+          gammaFreqs[0].push(item); gammaFreqs[1].push(idx);
+        }
+      });
+    }
+
+    getBandFreqs()
+
     //Make uPlot (will need to generalize this stuff for an nicer API to plot selected areas)
     var uPlotOptions = {
       title: "ADC0",
