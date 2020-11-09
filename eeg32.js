@@ -263,6 +263,17 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		return newLayout;
 	}
 
+	getAtlasCoordByTag(tag="Fp1"){
+		var found = undefined;
+		let atlasCoord = atlas.find((o, i) => {
+			if(o.tag === tag){
+				found = o;
+				return true;
+			}
+		});
+		return found;
+	}
+
 	//Returns a 10_20 atlas object with structure { "Fp1": {x,y,z,amplitudes[]}, "Fp2" : {...}, ...}
 	makeAtlas10_20(){
 		// 19 channel coordinate space spaghetti primitive. 

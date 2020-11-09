@@ -2,11 +2,12 @@
 <html>
 <head>
   <script src="eeg32.js"></script>
-  <script src="./other/gpu-browser.min.js" charset="UTF-8"></script>
-  <script src="./other/gpuJSUtils.js"></script>
-  
-  <script src="./other/d3.v5.min.js"></script>
-  <script src="./other/plotly-latest.min.js"></script>
+  <script src="./utils/gpu-browser.min.js" charset="UTF-8"></script>
+  <script src="./utils/gpuJSUtils.js"></script>
+  <link rel="stylesheet" href="./utils/uPlot.min.css">
+  <script src="./utils/uPlot.iife.min.js"></script>
+  <script src="./utils/smoothie.min.js"></script>
+
 </head>
 <body>
 <p id="p">
@@ -20,16 +21,26 @@
 <hr>
 <button id="connect">Connect to EEG</button>
 <button id="analyze">Analyze Data</button>
+<button id="stop">Stop Analyzing</button>
+<button id="record">Save CSV (does nothing)</button> 
 <h3>ADC 0 FFT 0-100Hz Bandpass</h3>
 <div id="adc0"></div>
-<h3>Alpha Band Amplitudes</h3>
-<div id="adc0alpha"></div>
+<h3>CH0 Band Amplitudes. Color codes: Purple - Delta, Orange - Theta, Green - Alpha, Blue - Beta, Red - Gamma</h3>
+<canvas id="bandAverages" style="width: 75%; height: 200px"></canvas>
+<h3>ADC0 Alpha Amplitudes (8-12Hz)</h3>
+<canvas id="alphaAverages" style="width: 75%; height: 200px"></canvas>
 <div id="contour"></div>
 
 <script>
   document.getElementById("connect").onclick = () => {EEG.setupSerialAsync();}
 
-  document.getElementById("analyze").onclick = () => {if(EEG.port !== null){analyzeEEG();} else{alert("connect the EEG first!")}}
+  var anim = null;
+
+  document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = analyzeEEG();} else{alert("connect the EEG first!")}}
+
+  document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim) }
+
+  document.getElementById("record").onclick = () => { alert("dummy"); }
 
   if(!navigator.serial){
       document.getElementById("p").innerHTML = "navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental') then refresh";
@@ -62,7 +73,6 @@
         thetaFreqs[0].push(item); thetaFreqs[1].push(idx);
       }
       if((item > 8) && (item <= 12)){
-	console.log(idx);
         alphaFreqs[0].push(item); alphaFreqs[1].push(idx);
       }
       if((item > 12) && (item <= 35)){
@@ -87,6 +97,123 @@
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
 
+    
+    //Make uPlot (will need to generalize this stuff for an nicer API to plot selected areas)
+    var uPlotOptions = {
+      title: "ADC0 FFTs",
+      width: 600,
+      height: 300,
+      series: [
+        {},
+        {
+          label:"Ch0",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "brown"
+        },
+        {
+          label:"Ch1",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "orange"
+        },
+        {
+          label:"Ch2",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "gold"
+        },
+        {
+          label:"Ch3",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "green"
+        },
+        {
+          label:"Ch4",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "purple"
+        },
+        {
+          label:"Ch5",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "blue"
+        },
+        {
+          label:"Ch6",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "violet"
+        },
+        {
+          label:"Ch7",
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "cyan"
+        },
+      ],
+      axes: [
+        {
+        scale: "Hz",
+        values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz")
+        },
+      ]
+    }
+
+    var uPlotData = [ //Dummy data
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow,
+      bandPassWindow
+    ]
+
+    var uPlot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
+
+    //Make smoothiejs charts
+    var deltaSeries = new TimeSeries(),
+        thetaSeries = new TimeSeries(),
+        alphaSeries = new TimeSeries(),
+        betaSeries = new TimeSeries(),
+        gammaSeries = new TimeSeries();        
+
+    var bandchart = new SmoothieChart({ responsive: true,
+      grid: { strokeStyle:'rgb(125, 0, 0)', fillStyle:'rgb(10, 10, 10)',
+      lineWidth: 1, millisPerLine: 250, verticalSections: 6, },
+      labels: { fillStyle:'rgb(60, 0, 0)' }
+    });
+    
+    bandchart.addTimeSeries(deltaSeries, { strokeStyle: 'purple', fillStyle: 'rgba(128,0,128,0.2)', lineWidth: 2 });
+    bandchart.addTimeSeries(thetaSeries, { strokeStyle: 'orange', fillStyle: 'rgba(255,128,0,0.2)', lineWidth: 2 });
+    bandchart.addTimeSeries(alphaSeries, { strokeStyle: 'green', fillStyle: 'rgba(0,255,0,0.2)', lineWidth: 2 });
+    bandchart.addTimeSeries(betaSeries,  { strokeStyle: 'blue', fillStyle: 'rgba(0,0,255,0.2)', lineWidth: 2 });
+    bandchart.addTimeSeries(gammaSeries, { strokeStyle: 'red', fillStyle: 'rgba(255,0,0,0.2)', lineWidth: 2 });
+    bandchart.streamTo(document.getElementById("bandAverages"), 500);
+
+
+    var alphaSeries1 = new TimeSeries(),
+        alphaSeries2 = new TimeSeries(),
+        alphaSeries3 = new TimeSeries(),
+        alphaSeries4 = new TimeSeries(),
+        alphaSeries5 = new TimeSeries(),
+        alphaSeries6 = new TimeSeries(),
+        alphaSeries7 = new TimeSeries();
+
+    var alphachart = new SmoothieChart({ responsive: true,
+      grid: { strokeStyle:'rgb(0, 0, 125)', fillStyle:'rgb(10, 10, 10)',
+      lineWidth: 1, millisPerLine: 250, verticalSections: 6, },
+      labels: { fillStyle:'rgb(60, 0, 0)' }
+    });
+    
+    alphachart.addTimeSeries(alphaSeries, { strokeStyle: 'rgba(0, 0, 255, 1)', fillStyle: 'rgba(255, 0, 200, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries1, { strokeStyle: 'rgba(255, 155, 0, 1)', fillStyle: 'rgba(255, 155, 0, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries2, { strokeStyle: 'rgba(255, 0, 200, 1)', fillStyle: 'rgba(0, 0, 255, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries3,  { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries4, { strokeStyle: 'rgba(0, 255, 255, 1)', fillStyle: 'rgba(0, 255, 255, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries5, { strokeStyle: 'rgba(100, 0, 255, 1)', fillStyle: 'rgba(100, 0, 255, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries6,  { strokeStyle: 'rgba(255, 255, 100, 1)', fillStyle: 'rgba(255, 255, 100, 0.2)', lineWidth: 2 });
+    alphachart.addTimeSeries(alphaSeries7, { strokeStyle: 'rgba(200, 100, 55, 1)', fillStyle: 'rgba(200, 100, 55, 0.2)', lineWidth: 2 });
+    alphachart.streamTo(document.getElementById("alphaAverages"), 500);
+
+
     function mean(arr){
       var sum = arr.reduce((prev,curr)=> curr += prev);
       return sum / arr.length;
@@ -105,24 +232,6 @@
 
     var coords = getAtlasCoordsList(atlas);
 
-    Plotly.newPlot('adc0', [{
-        x: bandPassWindow,
-        y: bandPassWindow //change to e.g. posMagsList[0]
-      }]);
-
-    Plotly.newPlot('adc0alpha', [{
-      x: alphaFreqs[0],
-      y: alphaFreqs[1] //change to e.g. posMagsList[1]
-    }]);
-
-    /*
-      Plotly.newPlot('contour', [{
-        x: coords.x,
-        y: coords.y,
-        z: coords.z,
-        type: 'scatter3d'
-      }]);
-    */
 
 
     //Looping animation to analyze channel data and update plots
@@ -145,39 +254,42 @@
       });
 
       //Update visuals
-
+      //Get Coord
+      var coord = EEG.getAtlasCoordByTag("Fp1");
       //Animate plot(s)
-      Plotly.newPlot('adc0', 
-        {
-          data: [
-{x:bandPassWindow, y: posMagsList[0]},
-{x:bandPassWindow, y:posMagsList[1]},
-{x:bandPassWindow, y:posMagsList[2]},
-{x:bandPassWindow, y:posMagsList[3]},
-{x:bandPassWindow, y:posMagsList[4]},
-{x:bandPassWindow, y:posMagsList[5]},
-{x:bandPassWindow, y:posMagsList[6]},
-{x:bandPassWindow, y:posMagsList[7]}
-],
-        },{ transition: {duration: 10}},{frame: {duration:10}});
+      uPlotData = [
+        bandPassWindow,
+        posMagsList[0],
+        posMagsList[1],
+        posMagsList[2],
+        posMagsList[3],
+        posMagsList[4],
+        posMagsList[5],
+        posMagsList[6],
+        posMagsList[7]
+      ];
+
+      uPlot.setData(uPlotData);
 
 
-Plotly.newPlot('adc0alpha', 
-        {
-          data: [
-{x:alphaFreqs[0], y: atlas[0].data.slices.alpha[atlas[0].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[1].data.slices.alpha[atlas[1].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[2].data.slices.alpha[atlas[2].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[3].data.slices.alpha[atlas[3].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[4].data.slices.alpha[atlas[4].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[5].data.slices.alpha[atlas[5].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[6].data.slices.alpha[atlas[6].data.slices.alpha.length-1]},
-{x:alphaFreqs[0], y: atlas[7].data.slices.alpha[atlas[7].data.slices.alpha.length-1]}
-],
-        },{ transition: {duration: 10}},{frame: {duration:10}});
+      var now = Date.now();
+      deltaSeries.append(now, coord.data.means.delta[coord.data.means.delta.length-1]);
+      thetaSeries.append(now, coord.data.means.theta[coord.data.means.theta.length-1]);
+      alphaSeries.append(now, coord.data.means.alpha[coord.data.means.alpha.length-1]);
+      betaSeries.append(now, coord.data.means.beta[coord.data.means.beta.length-1]);
+      gammaSeries.append(now, coord.data.means.gamma[coord.data.means.gamma.length-1]);
 
-      //Plotly.animate('contour',{});
-      setTimeout(()=>{requestAnimationFrame(analyzeEEG);},500); //Hard fps limit
+      //Alpha averages for ADC 0
+      alphaSeries1.append(now, atlas[1].data.means.alpha[atlas[1].data.means.alpha.length-1]);
+      alphaSeries2.append(now, atlas[2].data.means.alpha[atlas[2].data.means.alpha.length-1]);
+      alphaSeries3.append(now, atlas[3].data.means.alpha[atlas[3].data.means.alpha.length-1]);
+      alphaSeries4.append(now, atlas[4].data.means.alpha[atlas[4].data.means.alpha.length-1]);
+      alphaSeries5.append(now, atlas[5].data.means.alpha[atlas[5].data.means.alpha.length-1]);
+      alphaSeries6.append(now, atlas[6].data.means.alpha[atlas[6].data.means.alpha.length-1]);
+      alphaSeries7.append(now, atlas[7].data.means.alpha[atlas[7].data.means.alpha.length-1]);
+      
+
+      setTimeout(()=>{requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
     }
 
 
@@ -186,22 +298,22 @@ Plotly.newPlot('adc0alpha',
 	//console.time("slicing bands");
       let atlasCoord = atlas.find((o, i) => {
         if(o.tag === tag){
-	  atlas[i].data.times.push(performance.now());
+	        atlas[i].data.times.push(performance.now());
           atlas[i].data.amplitudes.push(posMagsList[channel]);
           var delta = posMagsList[channel].slice( deltaFreqs[0][1], deltaFreqs[1][deltaFreqs[1].length-1]);
-	  atlas[i].data.slices.delta.push(delta);
+	        atlas[i].data.slices.delta.push(delta);
           atlas[i].data.means.delta.push(mean(delta));
           var theta = posMagsList[channel].slice( thetaFreqs[0][1], thetaFreqs[1][thetaFreqs[1].length-1]);
-	  atlas[i].data.slices.theta.push(theta);
+	        atlas[i].data.slices.theta.push(theta);
           atlas[i].data.means.theta.push(mean(theta));
           var alpha = posMagsList[channel].slice( alphaFreqs[0][1], alphaFreqs[1][alphaFreqs[1].length-1]);
-	  atlas[i].data.slices.alpha.push(alpha);
+	        atlas[i].data.slices.alpha.push(alpha);
           atlas[i].data.means.alpha.push(mean(alpha));
           var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs[1][betaFreqs[1].length-1]);
-	  atlas[i].data.slices.beta.push(beta);
+	        atlas[i].data.slices.beta.push(beta);
           atlas[i].data.means.beta.push(mean(beta));
           var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs[1][gammaFreqs[1].length-1]);
-	  atlas[i].data.slices.gamma.push(gamma);
+	        atlas[i].data.slices.gamma.push(gamma);
           atlas[i].data.means.gamma.push(mean(gamma));
 	  //console.timeEnd("slicing bands");
           return true;
