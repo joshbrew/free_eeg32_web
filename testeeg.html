@@ -23,7 +23,12 @@
 <button id="analyze">Analyze Data</button>
 <button id="stop">Stop Analyzing</button>
 <button id="record">Save CSV (does nothing)</button> 
-<h3>ADC 0 FFT 0-100Hz Bandpass</h3>
+<input type="text" id="freqStart" placeholder="lower bound" value="0"></input>
+<input type="text" id="freqEnd" placeholder="upper bound" value="100"></input>
+<button id="bandPass">Set BandPass</button>
+<button id="mode">Mode</button>
+
+<h3 id="uplottitle">ADC 0 FFTs w/ Bandpass</h3>
 <div id="adc0"></div>
 <h3>CH0 Band Amplitudes. Color codes: Purple - Delta, Orange - Theta, Green - Alpha, Blue - Beta, Red - Gamma</h3>
 <canvas id="bandAverages" style="width: 75%; height: 200px"></canvas>
@@ -32,36 +37,83 @@
 <div id="contour"></div>
 
 <script>
-  document.getElementById("connect").onclick = () => {EEG.setupSerialAsync();}
 
-  var anim = null;
+    if(!navigator.serial){
+        document.getElementById("p").innerHTML = "navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental') then refresh";
+    }
 
-  document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = analyzeEEG();} else{alert("connect the EEG first!")}}
+    try { var EEG = new eeg32(); }
+    catch (error) { alert("eeg32.js err: ", error) }
 
-  document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim) }
+    try {
+      window.gpu = new gpuUtils();
+    }
+    catch (err) { alert("gpu.js utils error: ", err); }
 
-  document.getElementById("record").onclick = () => { alert("dummy"); }
-
-  if(!navigator.serial){
-      document.getElementById("p").innerHTML = "navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental') then refresh";
-  }
-
-  try { var EEG = new eeg32(); }
-  catch (error) { alert("eeg32.js err: ", error) }
-
-  try {
-    window.gpu = new gpuUtils();
-  }
-  catch (err) { alert("gpu.js utils error: ", err); }
 
     var nChannels = 32; //Number of channels to sample
     var sps = 512; //Samples per second
-    var nSec = 1; //Number of seconds to sample
+    var nSec = 1; //Number of seconds to sample FFTs
     var freqStart = 0; //Beginning of DFT frequencies
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
+    mode = "FFT"; //"TimeSeries"
+
     var posMagsList = []; // amplitudes (y-axis)
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
+
+    //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
+    var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
+      "Fp1",  //Channel 0
+      "Fp1",  //Channel 1
+      "Fpz",  //Channel 2 etc.
+      "F3",
+      "F4",
+      "F7",
+      "F8",
+      "Cz"
+    ]; 
+
+    var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
+
+    
+
+    document.getElementById("connect").onclick = () => {EEG.setupSerialAsync();}
+
+    var anim = null;
+
+    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = analyzeEEG();} else{alert("connect the EEG first!")}}
+
+    document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim) }
+
+    document.getElementById("record").onclick = () => { alert("dummy"); }
+
+    document.getElementById("bandPass").onclick = () => {
+      var freq0 = document.getElementById("freqStart").innerText;
+      var freq1 = document.getElementById("freqEnd").innerText;
+      if (freq0 > freq1) {
+        freq0 = 0;
+      }
+      if(freq1 > sps*0.5){
+        freq1 = sps*0.5;
+      }
+      freqStart = freq0;
+      freqEnd = freq1;
+      bandPassWindow = gpu.bandPassWindow(freq0,freq1,sps);
+
+    }
+
+    document.getElementById("mode").onclick = () => {
+      if(mode === "FFT"){
+        mode = "TimeSeries";
+        document.getElementById("uplottitle").innerHTML = "ADC0 signals";
+      }
+      else {
+        mode = "FFT";
+        document.getElementById("uplottitle").innerHTML = "ADC 0 FFTs w/ Bandpass";
+      }
+    }
+
 
 
     var deltaFreqs = [[],[]], thetaFreqs = [[],[]], alphaFreqs = [[],[]], betaFreqs = [[],[]], gammaFreqs = [[],[]]; //x axis values and indices for named EEG frequency bands
@@ -83,24 +135,9 @@
       }
     });
     
-    //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
-    var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
-      "Fp1", //Channel 0
-      "Fp1",  //Channel 1
-      "Fpz",  //Channel 2
-      "F3",
-      "F4",
-      "F7",
-      "F8",
-      "Cz"
-    ]; 
-
-    var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
-
-    
     //Make uPlot (will need to generalize this stuff for an nicer API to plot selected areas)
     var uPlotOptions = {
-      title: "ADC0 FFTs",
+      title: "ADC0",
       width: 600,
       height: 300,
       series: [
@@ -237,37 +274,75 @@
     //Looping animation to analyze channel data and update plots
     var analyzeEEG = () => {
       var buffer = [];
-      //var ct = EEG.data.counter;
-      for(var i = 0; i < nChannels; i++){
-        var channel = "A"+i
-        buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter)); //Lets get 1 second of the latest data
+
+      //for(var i = 0; i < nChannels; i++){
+      //  var channel = "A"+i
+      //  buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter)); //Lets get 1 second of the latest data
+      //}
+      
+      //console.time("GPU DFTx32");
+      //posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd);
+      //console.timeEnd("GPU DFTx32");
+      
+      //Select only chosen channels
+      for(var i = 0; i < channelTags.length; i++){
+        if((channelTags[i] !== null) && (i < nChannels)){
+          var channel = "A"+i
+          buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter));
+        }
       }
-      console.time("GPU DFTx32");
-      posMagsList = gpu.MultiChannelDFT_BandPass(buffer, 1, freqStart, freqEnd);
-      console.timeEnd("GPU DFTx32");
+
+      console.time("GPU DFTx8");
+      posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd);
+      console.timeEnd("GPU DFTx8");
+
       //Separate and report channel results by band
       channelTags.forEach((tag,i) => {
-        if((tag !== null) && (i < nChannels)){
-	  //console.log(tag);
-          channelBands(i,tag);
-        }
-      });
+          if((tag !== null) && (i < nChannels)){
+            //console.log(tag);
+            channelBands(i,tag);
+          }
+          if(tag === null){
+            posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function
+          }
+        });
+      
+
+      if(mode === "FFT"){
+
+        //Animate plot(s)
+        uPlotData = [
+          bandPassWindow,
+          posMagsList[0],
+          posMagsList[1],
+          posMagsList[2],
+          posMagsList[3],
+          posMagsList[4],
+          posMagsList[5],
+          posMagsList[6],
+          posMagsList[7]
+        ];
+      }
+
+      else if (mode === "TimeSeries") {
+        var nsamples = Math.floor(sps*nSec);
+        uPlotData = [
+          EEG.data.ms.slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A0"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A1"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A2"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A3"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A4"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A5"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A6"].slice(EEG.data.counter - nsamples, EEG.data.counter),
+          EEG.data["A7"].slice(EEG.data.counter - nsamples, EEG.data.counter)
+        ]
+      }
 
       //Update visuals
       //Get Coord
       var coord = EEG.getAtlasCoordByTag("Fp1");
-      //Animate plot(s)
-      uPlotData = [
-        bandPassWindow,
-        posMagsList[0],
-        posMagsList[1],
-        posMagsList[2],
-        posMagsList[3],
-        posMagsList[4],
-        posMagsList[5],
-        posMagsList[6],
-        posMagsList[7]
-      ];
+
 
       uPlot.setData(uPlotData);
 
@@ -295,7 +370,7 @@
 
     //This should be better optimized for animating e.g. integrated into a shader
     var channelBands = (channel,tag) => {
-	//console.time("slicing bands");
+	  //console.time("slicing bands");
       let atlasCoord = atlas.find((o, i) => {
         if(o.tag === tag){
 	        atlas[i].data.times.push(performance.now());
