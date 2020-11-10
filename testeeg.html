@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./utils/uPlot.min.css">
   <script src="./utils/uPlot.iife.min.js"></script>
   <script src="./utils/smoothie.min.js"></script>
+  <script src="./utils/webgl-heatmap.js"></script>
 
 </head>
 <body>
@@ -34,7 +35,19 @@
 <canvas id="bandAverages" style="width: 75%; height: 200px"></canvas>
 <h3>ADC0 Alpha Amplitudes (8-12Hz)</h3>
 <canvas id="alphaAverages" style="width: 75%; height: 200px"></canvas>
-<div id="contour"></div>
+
+<table>
+  <tr><td><h3>Brain Map (see "atlas" in the console and set corresponding channel tags (see "channelTags")) | </h3></td>
+  <td><h4>Viewing:</h4></td>
+  <td><select id="bandview">
+    <option value="delta">Delta</option>
+    <option value="theta">Theta</option>
+    <option value="alpha" selected="selected">Alpha</option>
+    <option value="beta">Beta</option>
+    <option value="gamma">Gamma</option>
+  </select></td></tr>
+</table>
+<canvas id="brainmap" style="width: 400px; height: 400px"></canvas>
 
 <script>
 
@@ -50,7 +63,6 @@
     }
     catch (err) { alert("gpu.js utils error: ", err); }
 
-
     var nChannels = 32; //Number of channels to sample
     var sps = 512; //Samples per second
     var nSec = 1; //Number of seconds to sample FFTs
@@ -59,6 +71,8 @@
 
     var mode = "FFT"; //"TimeSeries"
     var nSecGraph = 10; //number of seconds to show on the graph
+
+    var viewing = "alpha";
 
     var posMagsList = []; // amplitudes (y-axis)
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
@@ -76,6 +90,18 @@
     ]; 
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
+
+    var heatmap = createWebGLHeatmap({canvas: document.getElementById("brainmap"), intensityToAlpha: true});
+    //heatmap.addPoint(100,100,100,0.5); //clear, add points, update, display, repeat
+    
+    var points = [];
+    atlas.forEach((row,i) => {
+      points.push({x:row.data.x+200, y:row.data.y+200, size:90, intensity:0.7});
+    });
+    heatmap.clear();
+    heatmap.addPoints(points);
+    heatmap.update();
+    heatmap.display();
 
     
 
@@ -442,6 +468,44 @@
       alphaSeries6.append(now, atlas[6].data.means.alpha[atlas[6].data.means.alpha.length-1]);
       alphaSeries7.append(now, atlas[7].data.means.alpha[atlas[7].data.means.alpha.length-1]);
       
+
+      var points = [];
+
+      //normalize the point sizes to a max of 90.
+      var viewing = document.getElementById("bandview").value;
+
+      channelTags.forEach((row,i) => {
+        let atlasCoord = atlas.find((o, j) => {
+          if(o.tag === row.tag){
+            points.push({x:row.data.x+200, y:row.data.y+200, intensity:0.7});
+            if(viewing === "delta"){
+              points[points.length - 1].size = o.data.means.delta;
+            }
+            else if(viewing === "theta"){
+              points[points.length - 1].size = o.data.means.theta;
+            }
+            else if(viewing === "alpha"){
+              points[points.length - 1].size = o.data.means.alpha;
+            }
+            else if(viewing === "beta"){
+              points[points.length - 1].size = o.data.means.beta;
+            }
+            else if(viewing === "gamma"){
+              points[points.length - 1].size = o.data.means.gamma;
+            }
+            points[points.length - 1].size *= 0.001;
+            if(points[points.length - 1].size > 90){
+              points[points.length - 1].size = 90;
+            }
+          }
+        });
+      });
+
+      
+      heatmap.clear();
+      heatmap.addPoints(points);
+      heatmap.update();
+      heatmap.display();
 
       setTimeout(()=>{anim = requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
     }
