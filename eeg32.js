@@ -11,8 +11,12 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
         this.buffer = []; 
         this.startByte = 160; // Start byte value
 		this.stopByte = 192; // Stop byte value
-		this.searchString = new Uint8Array([this.stopByte,this.startByte]);
-		this.updateMs = 1000/512; //even spacing
+		this.searchString = new Uint8Array([this.stopByte,this.startByte]); //Byte search string
+		
+		this.sps = 512; // Sample rate
+		this.nChannels = 32; // 24 bit channels, 3 bytes each
+		this.nPeripheralChannels = 6; // accelerometer and gyroscope (2 bytes * 3 coordinates each)
+		this.updateMs = 1000/this.sps; //even spacing
 		
 		this.data = { //Data object to keep our head from exploding. Get current data with e.g. this.data.A0[this.data.counter-1]
 			counter: 0,
@@ -252,13 +256,13 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	//Input arrays of corresponding tags, xyz coordinates as Array(3) objects, and DFT amplitudes (optional).
 	newAtlas(tags=["Fp1","Fp2"], coords = [[-21.5, 70.2,-0.1],[28.4,69.1,-0.4]],times=undefined,amplitudes=undefined,slices=null, means=null){
-		var newLayout = [];
+		var newLayout = {shared: {sps: this.sps, bandPassWindows:[]}, map:[]}
 		tags.forEach((tag,i) => {
 			if (amplitudes === undefined) {
-				newLayout.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],undefined,undefined,undefined,undefined)});
+				newLayout.map.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],undefined,undefined,undefined,undefined)});
 			}
 			else{
-				newLayout.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],times[i],amplitudes[i],slices[i],means[i])});
+				newLayout.map.push({tag: tag, data: this.newCoord(coords[i][0],coords[i][1],coords[i][2],times[i],amplitudes[i],slices[i],means[i])});
 			}
 		});
 		return newLayout;
@@ -266,7 +270,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	getAtlasCoordByTag(tag="Fp1"){
 		var found = undefined;
-		let atlasCoord = atlas.find((o, i) => {
+		let atlasCoord = atlas.map.find((o, i) => {
 			if(o.tag === tag){
 				found = o;
 				return true;
@@ -279,7 +283,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	makeAtlas10_20(){
 		// 19 channel coordinate space spaghetti primitive. 
 		// Based on MNI atlas. 
-		return [ 
+		return {shared: {sps: this.sps, bandPassWindows:[]}, map:[,
 			{tag:"Fp1", data: { x: -21.5, y: 70.2, z: -0.1, times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fp2", data: { x: 28.4,  y: 69.1, z: -0.4, times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []},means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fz",  data: { x: 0.6,   y: 40.9, z: 53.9,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []},means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
@@ -299,7 +303,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			{tag:"T6",  data: { x: 59.3,  y: -67.6, z: 3.8, times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []},means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"O1",  data: { x: -26.8, y: -100.2, z: 12.8, times: [],amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []},means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma:[0]}}},
 			{tag:"O2",  data: { x: 24.1,  y: -100.5, z: 14., times: [],amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []},means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}} 
-		];
+		]};
 
 	}
 

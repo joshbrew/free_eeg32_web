@@ -90,12 +90,13 @@
     ]; 
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
+    atlas.shared.sps = EEG.sps;
 
     var heatmap = createWebGLHeatmap({canvas: document.getElementById("brainmap"), intensityToAlpha: true});
     //heatmap.addPoint(100,100,100,0.5); //clear, add points, update, display, repeat
     
     var points = [];
-    atlas.forEach((row,i) => {
+    atlas.map.forEach((row,i) => {
       points.push({x:row.data.x+200, y:row.data.y+200, size:90, intensity:0.7});
     });
     heatmap.clear();
@@ -370,9 +371,9 @@
     function getAtlasCoordsList(fromAtlas) {
       var coords = {x: [], y: [], z: []};
       for(var i = 0; i< fromAtlas.length; i++) {
-        coords.x.push(fromAtlas[i].data.x);
-        coords.y.push(fromAtlas[i].data.y);
-        coords.z.push(fromAtlas[i].data.z);
+        coords.x.push(fromAtlas.map[i].data.x);
+        coords.y.push(fromAtlas.map[i].data.y);
+        coords.z.push(fromAtlas.map[i].data.z);
       }
 
       return coords;
@@ -403,9 +404,10 @@
         }
       }
 
-      console.time("GPU DFTx8");
+      console.time("GPU DFT");
       posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd);
-      console.timeEnd("GPU DFTx8");
+      console.timeEnd("GPU DFT");
+      console.log("Channels processed: ", buffer.length);
 
       //Separate and report channel results by band
       channelTags.forEach((row,i) => {
@@ -417,6 +419,7 @@
             posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function to work
           }
         });
+      atlas.shared.bandPassWindows.push(bandPassWindow);//Push the x-axis values for each frame captured as they may change
       
 
       if(mode === "FFT"){
@@ -460,13 +463,13 @@
       gammaSeries.append(now, coord.data.means.gamma[coord.data.means.gamma.length-1]);
 
       //Alpha averages for ADC 0
-      alphaSeries1.append(now, atlas[1].data.means.alpha[atlas[1].data.means.alpha.length-1]);
-      alphaSeries2.append(now, atlas[2].data.means.alpha[atlas[2].data.means.alpha.length-1]);
-      alphaSeries3.append(now, atlas[3].data.means.alpha[atlas[3].data.means.alpha.length-1]);
-      alphaSeries4.append(now, atlas[4].data.means.alpha[atlas[4].data.means.alpha.length-1]);
-      alphaSeries5.append(now, atlas[5].data.means.alpha[atlas[5].data.means.alpha.length-1]);
-      alphaSeries6.append(now, atlas[6].data.means.alpha[atlas[6].data.means.alpha.length-1]);
-      alphaSeries7.append(now, atlas[7].data.means.alpha[atlas[7].data.means.alpha.length-1]);
+      alphaSeries1.append(now, atlas.map[1].data.means.alpha[atlas.map[1].data.means.alpha.length-1]);
+      alphaSeries2.append(now, atlas.map[2].data.means.alpha[atlas.map[2].data.means.alpha.length-1]);
+      alphaSeries3.append(now, atlas.map[3].data.means.alpha[atlas.map[3].data.means.alpha.length-1]);
+      alphaSeries4.append(now, atlas.map[4].data.means.alpha[atlas.map[4].data.means.alpha.length-1]);
+      alphaSeries5.append(now, atlas.map[5].data.means.alpha[atlas.map[5].data.means.alpha.length-1]);
+      alphaSeries6.append(now, atlas.map[6].data.means.alpha[atlas.map[6].data.means.alpha.length-1]);
+      alphaSeries7.append(now, atlas.map[7].data.means.alpha[atlas.map[7].data.means.alpha.length-1]);
       
 
       var points = [];
@@ -475,7 +478,7 @@
       var viewing = document.getElementById("bandview").value;
 
       channelTags.forEach((row,i) => {
-        let atlasCoord = atlas.find((o, j) => {
+        let atlasCoord = atlas.map.find((o, j) => {
           if(o.tag === row.tag){
             points.push({x:row.data.x+200, y:row.data.y+200, intensity:0.7});
             if(viewing === "delta"){
@@ -514,25 +517,25 @@
     //This should be better optimized for animating e.g. integrated into a shader
     var channelBands = (channel,tag) => {
 	  //console.time("slicing bands");
-      let atlasCoord = atlas.find((o, i) => {
+      let atlasCoord = atlas.map.find((o, i) => {
         if(o.tag === tag){
-	        atlas[i].data.times.push(performance.now());
-          atlas[i].data.amplitudes.push(posMagsList[channel]);
+	        atlas.map[i].data.times.push(performance.now());
+          atlas.map[i].data.amplitudes.push(posMagsList[channel]);
           var delta = posMagsList[channel].slice( deltaFreqs[0][1], deltaFreqs[1][deltaFreqs[1].length-1]);
-	        atlas[i].data.slices.delta.push(delta);
-          atlas[i].data.means.delta.push(mean(delta));
+	        atlas.map[i].data.slices.delta.push(delta);
+          atlas.map[i].data.means.delta.push(mean(delta));
           var theta = posMagsList[channel].slice( thetaFreqs[0][1], thetaFreqs[1][thetaFreqs[1].length-1]);
-	        atlas[i].data.slices.theta.push(theta);
-          atlas[i].data.means.theta.push(mean(theta));
+	        atlas.map[i].data.slices.theta.push(theta);
+          atlas.map[i].data.means.theta.push(mean(theta));
           var alpha = posMagsList[channel].slice( alphaFreqs[0][1], alphaFreqs[1][alphaFreqs[1].length-1]);
-	        atlas[i].data.slices.alpha.push(alpha);
-          atlas[i].data.means.alpha.push(mean(alpha));
+	        atlas.map[i].data.slices.alpha.push(alpha);
+          atlas.map[i].data.means.alpha.push(mean(alpha));
           var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs[1][betaFreqs[1].length-1]);
-	        atlas[i].data.slices.beta.push(beta);
-          atlas[i].data.means.beta.push(mean(beta));
+	        atlas.map[i].data.slices.beta.push(beta);
+          atlas.map[i].data.means.beta.push(mean(beta));
           var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs[1][gammaFreqs[1].length-1]);
-	        atlas[i].data.slices.gamma.push(gamma);
-          atlas[i].data.means.gamma.push(mean(gamma));
+	        atlas.map[i].data.slices.gamma.push(gamma);
+          atlas.map[i].data.means.gamma.push(mean(gamma));
 	  //console.timeEnd("slicing bands");
           return true;
         }
