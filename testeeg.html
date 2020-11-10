@@ -23,9 +23,9 @@
 <input type="text" id="freqEnd" placeholder="upper bound" value="100">
 <button id="bandPass">Set BandPass</button>
 <button id="mode">Mode</button>
-<br><input type="text" id="channelView" placeholder="0,1,2,3,4,5,6,7" value="0,1,2,3,4,5,6,7">
+<br><input type="text" id="channelView" placeholder="Format: 0,1,2,5,6,7,etc" value="0,1,2,3,4,5,6,7">
 <button id="setChannelView">Set Channel View</button>
-<input type="text" id="channelTags" placeholder="0:Fp1,1:Fp2,2:Fpz" value="0:Fp1,1:Fp2,2:Fpz">
+<input type="text" id="channelTags" placeholder="Format: 0:Fp1,2:Fpz,etc" value="0:Fp1,1:Fp2,2:Fpz">
 <button id="setTags">Set Tags</button>
 
 <h3 id="uplottitle">ADC 0 FFTs w/ Bandpass</h3>
@@ -120,6 +120,7 @@
 
     document.getElementById("setChannelView").onclick = () => {
       var val = document.getElementById("channelView").value;
+      if(val.length === 0) { return; }
       var arr = val.split(",");
       var newSeries = [{}];
       arr.forEach((item,i) => {
@@ -157,6 +158,7 @@
     
     document.getElementById("setTags").onclick = () => {
       var val = document.getElementById("channelTags").value;
+      if(val.length === 0) { return; }
       //console.log(val);
       var arr = val.split(",");
       //console.log(arr);
