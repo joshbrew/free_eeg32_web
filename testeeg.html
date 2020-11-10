@@ -24,7 +24,7 @@
 <button id="bandPass">Set BandPass</button>
 <button id="mode">Mode</button>
 <br><input type="text" id="channelView" placeholder="0,1,2,3,4,5,6,7" value="0,1,2,3,4,5,6,7">
-<button id="setChannels">Set Channel View</button>
+<button id="setChannelView">Set Channel View</button>
 <input type="text" id="channelTags" placeholder="0:Fp1,1:Fp2,2:Fpz" value="0:Fp1,1:Fp2,2:Fpz">
 <button id="setTags">Set Tags</button>
 
@@ -66,13 +66,13 @@
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       {ch: 0, tag: "Fp1"},  //Channel 0
-      {ch: 1, tag: "Fp1"},  //Channel 1
+      {ch: 1, tag: "Fp2"},  //Channel 1
       {ch: 2, tag: "Fpz"},  //Channel 2 etc.
       {ch: 3, tag: "F3"},
       {ch: 4, tag: "F4"},
       {ch: 5, tag: "F7"},
       {ch: 6, tag: "F8"},
-      {ch: 7, tag: "Cz"}
+      {ch: 7, tag: "Cz"},
     ]; 
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
@@ -109,57 +109,113 @@
       if(mode === "FFT"){
         mode = "TimeSeries";
         document.getElementById("uplottitle").innerHTML = "ADC0 signals";
-	     uPlot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
+	      plot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
       else {
         mode = "FFT";
         document.getElementById("uplottitle").innerHTML = "ADC 0 FFTs w/ Bandpass";
-	      uPlot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
+	      plot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
       }
     }
 
-    document.getElementById("setChannels").onclick = () => {
+    document.getElementById("setChannelView").onclick = () => {
       var val = document.getElementById("channelView").value;
       var arr = val.split(",");
+      var newSeries = [{}];
       arr.forEach((item,i) => {
-        let setTags = channelTags.find((o, i) => {
-        if(o.ch === arr.item){
+        var found = false;
+        let getTags = channelTags.find((o, j) => {
+        if((o.ch === parseInt(item)) || (o.tag === item)){
+          //console.log(item);
+          newSeries.push({
+            label:"A"+o.ch + ", Tag: "+o.tag,
+            value: (u, v) => v == null ? "-" : v.toFixed(1),
+            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+          });
+          found = true;
           return true;
           }
         });
-        if (setTags === false){
-          channelTags.push({ch:item, tag: null});
+        if (found === false){ //add tag
+          if(parseInt(item) !== NaN){
+            channelTags.push({ch:parseInt(item), tag: null});
+            newSeries.push({
+              label:"A"+parseInt(item) + ", Tag: null",
+              value: (u, v) => v == null ? "-" : v.toFixed(1),
+              stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+            });
+          }
+          else {
+            alert("Tag not assigned to channel: ", item);
+          }
         }
       });
 
-      //update uplot series
-      var newSeries = [{}];
-      channelTags.forEach((row,i) => {
-        newSeries.push({
-          label:"Ch"+row.ch,
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
-        });
-      })
-     
-      uPlot.setSeries(newSeries);
+      plot.destroy();
+      makeuPlot(newSeries);
     }
     
-    document.getElementById("channelTags").onclick = () => {
-      var val = document.getElementById("channelView").value;
+    document.getElementById("setTags").onclick = () => {
+      var val = document.getElementById("channelTags").value;
+      //console.log(val);
       var arr = val.split(",");
+      //console.log(arr);
       arr.forEach((item,i) => {
-        var row = item.split(":");
+        var dict = item.split(":");
+        var found = false;
         let setTags = channelTags.find((o, i) => {
-        if(o.ch === parseInt(row[0])){
-          o.tag = row[1];
+          if(o.ch === parseInt(dict[0])){
+            //console.log(o);
+            channelTags[i].tag = dict[1];
+            found = true;
+            return true;
+            }
+          else if(o.tag === dict[1]){
+            channelTags[i].tag = null; //Set tag to null since it's begin assigned to another channel
+          }
+        });
+        if (found === false){
+          var ch = parseInt(dict[0]);
+          if((ch > 0) && (ch < nChannels)){
+            channelTags.push({ch:parseInt(ch), tag: dict[1]});
+          }
+        }
+      });
+
+      val = document.getElementById("channelView").value;
+      arr = val.split(",");
+      var newSeries = [{}];
+      arr.forEach((item,i) => {
+        var found = false;
+        let getTags = channelTags.find((o, j) => {
+        if((o.ch === parseInt(item)) || (o.tag === item)){
+          //console.log(item);
+          newSeries.push({
+            label:"A"+o.ch + ", Tag: "+o.tag,
+            value: (u, v) => v == null ? "-" : v.toFixed(1),
+            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+          });
+          found = true;
           return true;
           }
         });
-        if (setTags === false){
-          channelTags.push({ch:parseInt(row[0]), tag: row[1]});
+        if (found === false){ //add tag
+          if(parseInt(item) !== NaN){
+            channelTags.push({ch:parseInt(item), tag: null});
+            newSeries.push({
+              label:"A"+parseInt(item) + ", Tag: null",
+              value: (u, v) => v == null ? "-" : v.toFixed(1),
+              stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+            });
+          }
+          else {
+            alert("Tag not assigned to channel: ", item);
+          }
         }
       });
+
+      plot.destroy();
+      makeuPlot(newSeries);
     }
 
 
@@ -187,76 +243,51 @@
 
     getBandFreqs()
 
-    //Make uPlot (will need to generalize this stuff for an nicer API to plot selected areas)
-    var uPlotOptions = {
-      title: "ADC0",
-      width: 1000,
-      height: 300,
-      series: [
-        {},
-        {
-          label:"Ch0",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "brown"
-        },
-        {
-          label:"Ch1",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "orange"
-        },
-        {
-          label:"Ch2",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "gold"
-        },
-        {
-          label:"Ch3",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "green"
-        },
-        {
-          label:"Ch4",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "purple"
-        },
-        {
-          label:"Ch5",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "blue"
-        },
-        {
-          label:"Ch6",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "violet"
-        },
-        {
-          label:"Ch7",
-          value: (u, v) => v == null ? "-" : v.toFixed(1),
-          stroke: "cyan"
-        },
-      ],
-      axes: [
-        {
-        scale: "Hz",
-        values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz")
-        },
-      ]
+    var plot = null;
+
+    //Make uPlot (will need to generalize this stuff for a nicer API to customize plots)
+    var makeuPlot = (series=undefined) => {
+      var newSeries = [{}];
+      if(series === undefined) {
+        channelTags.forEach((row,i) => {
+          newSeries.push({
+            label:"A"+row.ch + ", Tag: "+row.tag,
+            value: (u, v) => v == null ? "-" : v.toFixed(1),
+            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+          });
+        });
+      }
+      else {
+        newSeries = series;
+      }
+      
+      var uPlotOptions = {
+        title: "ADC0",
+        width: 1000,
+        height: 300,
+        series: newSeries,
+        axes: [
+          {
+          scale: "Hz",
+          values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz")
+          },
+        ]
+      }
+
+      var uPlotData = [ //Dummy data
+        bandPassWindow
+      ];
+
+      channelTags.forEach((tag,i) => {
+        uPlotData.push(bandPassWindow);
+      })
+
+      plot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
+
     }
 
-    var uPlotData = [ //Dummy data
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow,
-      bandPassWindow
-    ]
-
-    var uPlot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
-
+    makeuPlot();
+    
     //Make smoothiejs charts
     var deltaSeries = new TimeSeries(),
         thetaSeries = new TimeSeries(),
@@ -355,7 +386,7 @@
             channelBands(i,row.tag);
           }
           if(tag === null){
-            posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function
+            posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function to work
           }
         });
       
@@ -390,7 +421,7 @@
       var coord = EEG.getAtlasCoordByTag(channelTags[0].tag);
 
 
-      uPlot.setData(uPlotData);
+      plot.setData(uPlotData);
 
       
       var now = Date.now();
