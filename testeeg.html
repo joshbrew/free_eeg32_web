@@ -113,7 +113,7 @@
     
     var points = [];
     atlas.map.forEach((row,i) => {
-      points.push({x:row.data.x+200, y:200-row.data.y, size:90, intensity:0.7});
+      points.push({x:row.data.x*1.5+200, y:200-row.data.y*1.5, size:135, intensity:0.7});
     });
     heatmap.clear();
     heatmap.addPoints(points);
@@ -403,6 +403,7 @@
     brainmappointcanvas.width = 400;
     brainmappointcanvas.height = 400;
     var brainmapctx = brainmappointcanvas.getContext("2d");
+
     var drawBrainMapPoints = () => {
       brainmapctx.fillStyle = "rgba(0,0,0,0)";
       brainmapctx.fillRect(0, 0, brainmappointcanvas.width, brainmappointcanvas.height);
@@ -411,17 +412,20 @@
         brainmapctx.fillStyle="rgba(0,0,255,1)";
         let tags = channelTags.find((o, i) => {
           if(o.tag === row.tag){
+            brainmapctx.fillStyle = "rgba(0,0,0,0.7)";
+            brainmapctx.fillText(o.ch,190+row.data.x*1.5,210-row.data.y*1.5,14);
+            
             brainmapctx.fillStyle="rgba(0,255,0,1)";
             return true;
           }
         });
         // Draws a circle at the coordinates on the canvas
-        brainmapctx.arc(200+row.data.x, 200-row.data.y, 3, 0, Math.PI*2, true); 
+        brainmapctx.arc(200+row.data.x*1.5, 200-row.data.y*1.5, 4, 0, Math.PI*2, true); 
         brainmapctx.closePath();
         brainmapctx.fill();
 
         brainmapctx.fillStyle = "rgba(0,0,0,0.7)";
-        brainmapctx.fillText(row.tag,203+row.data.x,210-row.data.y,10);
+        brainmapctx.fillText(row.tag,204+row.data.x*1.5,210-row.data.y*1.5,14);
       });
     }
 
@@ -525,7 +529,7 @@
       channelTags.forEach((row,i) => {
         let atlasCoord = atlas.map.find((o, j) => {
           if(o.tag === row.tag){
-            points.push({x:row.data.x+200, y:200-row.data.y, intensity:0.7});
+            points.push({x:row.data.x*1.5+200, y:200-row.data.y*1.5, intensity:0.7});
             if(viewing === "delta"){
               points[points.length - 1].size = o.data.means.delta;
             }
@@ -541,9 +545,9 @@
             else if(viewing === "gamma"){
               points[points.length - 1].size = o.data.means.gamma;
             }
-            points[points.length - 1].size *= 0.001;
-            if(points[points.length - 1].size > 90){
-              points[points.length - 1].size = 90;
+            points[points.length - 1].size *= 0.001; //Need a better method
+            if(points[points.length - 1].size > 135){
+              points[points.length - 1].size = 135;
             }
           }
         });
