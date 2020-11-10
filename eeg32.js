@@ -112,7 +112,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	async onPortSelected(port,baud) {
 		try {await port.open({ baudRate: baud, bufferSize: 65536 });} //API inconsistency in syntax between linux and windows
-		catch {await port.open({ baudrate: baud, bufferSize: 65536 });}
+		catch {await port.open({ baudrate: baud, bufferSize: 65536});}
 		this.onConnectedCallback();
 		this.subscribe(port);
 	}

@@ -19,10 +19,14 @@
 <button id="analyze">Analyze Data</button>
 <button id="stop">Stop Analyzing</button>
 <button id="record">Save CSV (does nothing)</button> 
-<input type="text" id="freqStart" placeholder="lower bound" value="0"></input>
-<input type="text" id="freqEnd" placeholder="upper bound" value="100"></input>
+<input type="text" id="freqStart" placeholder="lower bound" value="0">
+<input type="text" id="freqEnd" placeholder="upper bound" value="100">
 <button id="bandPass">Set BandPass</button>
 <button id="mode">Mode</button>
+<br><input type="text" id="channelView" placeholder="0,1,2,3,4,5,6,7" value="0,1,2,3,4,5,6,7">
+<button id="setChannels">Set Channel View</button>
+<input type="text" id="channelTags" placeholder="0:Fp1,1:Fp2,2:Fpz" value="0:Fp1,1:Fp2,2:Fpz">
+<button id="setTags">Set Tags</button>
 
 <h3 id="uplottitle">ADC 0 FFTs w/ Bandpass</h3>
 <div id="adc0"></div>
@@ -53,21 +57,22 @@
     var freqStart = 0; //Beginning of DFT frequencies
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
-    mode = "FFT"; //"TimeSeries"
+    var mode = "FFT"; //"TimeSeries"
+    var nSecGraph = 10; //number of seconds to show on the graph
 
     var posMagsList = []; // amplitudes (y-axis)
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
-      "Fp1",  //Channel 0
-      "Fp1",  //Channel 1
-      "Fpz",  //Channel 2 etc.
-      "F3",
-      "F4",
-      "F7",
-      "F8",
-      "Cz"
+      {ch: 0, tag: "Fp1"},  //Channel 0
+      {ch: 1, tag: "Fp1"},  //Channel 1
+      {ch: 2, tag: "Fpz"},  //Channel 2 etc.
+      {ch: 3, tag: "F3"},
+      {ch: 4, tag: "F4"},
+      {ch: 5, tag: "F7"},
+      {ch: 6, tag: "F8"},
+      {ch: 7, tag: "Cz"}
     ]; 
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
@@ -85,8 +90,8 @@
     document.getElementById("record").onclick = () => { alert("dummy"); }
 
     document.getElementById("bandPass").onclick = () => {
-      var freq0 = document.getElementById("freqStart").innerText;
-      var freq1 = document.getElementById("freqEnd").innerText;
+      var freq0 = parseFloat(document.getElementById("freqStart").value);
+      var freq1 = parseFloaT(document.getElementById("freqEnd").value);
       if (freq0 > freq1) {
         freq0 = 0;
       }
@@ -104,13 +109,57 @@
       if(mode === "FFT"){
         mode = "TimeSeries";
         document.getElementById("uplottitle").innerHTML = "ADC0 signals";
-	uPlot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
+	     uPlot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
       else {
         mode = "FFT";
         document.getElementById("uplottitle").innerHTML = "ADC 0 FFTs w/ Bandpass";
-	uPlot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
+	      uPlot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
       }
+    }
+
+    document.getElementById("setChannels").onclick = () => {
+      var val = document.getElementById("channelView").value;
+      var arr = val.split(",");
+      arr.forEach((item,i) => {
+        let setTags = channelTags.find((o, i) => {
+        if(o.ch === arr.item){
+          return true;
+          }
+        });
+        if (setTags === false){
+          channelTags.push({ch:item, tag: null});
+        }
+      });
+
+      //update uplot series
+      var newSeries = [{}];
+      channelTags.forEach((row,i) => {
+        newSeries.push({
+          label:"Ch"+row.ch,
+          value: (u, v) => v == null ? "-" : v.toFixed(1),
+          stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+        });
+      })
+     
+      uPlot.setSeries(newSeries);
+    }
+    
+    document.getElementById("channelTags").onclick = () => {
+      var val = document.getElementById("channelView").value;
+      var arr = val.split(",");
+      arr.forEach((item,i) => {
+        var row = item.split(":");
+        let setTags = channelTags.find((o, i) => {
+        if(o.ch === parseInt(row[0])){
+          o.tag = row[1];
+          return true;
+          }
+        });
+        if (setTags === false){
+          channelTags.push({ch:parseInt(row[0]), tag: row[1]});
+        }
+      });
     }
 
 
@@ -289,8 +338,8 @@
       
       //Select only chosen channels
       for(var i = 0; i < channelTags.length; i++){
-        if((channelTags[i] !== null) && (i < nChannels)){
-          var channel = "A"+i
+        if(i < nChannels){
+          var channel = "A"+channelTags[i].ch;
           buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter));
         }
       }
@@ -300,10 +349,10 @@
       console.timeEnd("GPU DFTx8");
 
       //Separate and report channel results by band
-      channelTags.forEach((tag,i) => {
-          if((tag !== null) && (i < nChannels)){
+      channelTags.forEach((row,i) => {
+          if((row.tag !== null) && (i < nChannels)){
             //console.log(tag);
-            channelBands(i,tag);
+            channelBands(i,row.tag);
           }
           if(tag === null){
             posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function
@@ -315,41 +364,35 @@
 
         //Animate plot(s)
         uPlotData = [
-          bandPassWindow,
-          posMagsList[0],
-          posMagsList[1],
-          posMagsList[2],
-          posMagsList[3],
-          posMagsList[4],
-          posMagsList[5],
-          posMagsList[6],
-          posMagsList[7]
+          bandPassWindow
         ];
+
+        channelTags.forEach((row,i) => {
+          uPlotData.push(posMagsList[row.ch]);
+        });
+        
       }
 
       else if (mode === "TimeSeries") {
-        var nsamples = Math.floor(sps*10);
+        var nsamples = Math.floor(sps*nSecGraph);
+
         uPlotData = [
-          EEG.data.ms.slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A0"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A1"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A2"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A3"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A4"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A5"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A6"].slice(EEG.data.counter - nsamples, EEG.data.counter),
-          EEG.data["A7"].slice(EEG.data.counter - nsamples, EEG.data.counter)
-        ]
+          EEG.data.ms.slice(EEG.data.counter - nsamples, EEG.data.counter)
+        ];
+
+        channelTags.forEach((row,i) => {
+          uPlotData.push(EEG.data["A"+row.ch].slice(EEG.data.counter - nsamples, EEG.data.counter));
+        });
       }
 
       //Update visuals
       //Get Coord
-      var coord = EEG.getAtlasCoordByTag("Fp1");
+      var coord = EEG.getAtlasCoordByTag(channelTags[0].tag);
 
 
       uPlot.setData(uPlotData);
 
-
+      
       var now = Date.now();
       deltaSeries.append(now, coord.data.means.delta[coord.data.means.delta.length-1]);
       thetaSeries.append(now, coord.data.means.theta[coord.data.means.theta.length-1]);
