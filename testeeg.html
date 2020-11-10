@@ -4,10 +4,22 @@
   <script src="eeg32.js"></script>
   <script src="./utils/gpu-browser.min.js" charset="UTF-8"></script>
   <script src="./utils/gpuJSUtils.js"></script>
+  <script src="./utils/HEGwebAPI.js"></script>
   <link rel="stylesheet" href="./utils/uPlot.min.css">
   <script src="./utils/uPlot.iife.min.js"></script>
   <script src="./utils/smoothie.min.js"></script>
   <script src="./utils/webgl-heatmap.js"></script>
+
+  <style>
+    #brainmap {
+      position: absolute;
+      top: 1100px;
+    }
+    #brainmappoints {
+      position: absolute;
+      top:1100px;
+    }
+  </style>
 
 </head>
 <body>
@@ -48,6 +60,7 @@
   </select></td></tr>
 </table>
 <canvas id="brainmap" style="width: 400px; height: 400px"></canvas>
+<canvas id="brainmappoints" style="width: 400px; height:400px;"></canvas>
 
 <script>
 
@@ -77,6 +90,8 @@
     var posMagsList = []; // amplitudes (y-axis)
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
+    //var sounds = new SoundJS(); //For theta-gamma 2 octave
+
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       {ch: 0, tag: "Fp1"},  //Channel 0
@@ -97,7 +112,7 @@
     
     var points = [];
     atlas.map.forEach((row,i) => {
-      points.push({x:row.data.x+200, y:row.data.y+200, size:90, intensity:0.7});
+      points.push({x:row.data.x+200, y:200-row.data.y, size:90, intensity:0.7});
     });
     heatmap.clear();
     heatmap.addPoints(points);
@@ -245,6 +260,7 @@
 
       plot.destroy();
       makeuPlot(newSeries);
+      drawBrainMapPoints();
     }
 
 
@@ -382,6 +398,31 @@
     var coords = getAtlasCoordsList(atlas);
 
 
+    var brainmappointcanvas = document.getElementById("brainmappoints");
+    brainmappointcanvas.width = 400;
+    brainmappointcanvas.height = 400;
+    var brainmapctx = brainmappointcanvas.getContext("2d");
+    var drawBrainMapPoints = () => {
+      brainmapctx.fillStyle = "rgba(0,0,0,0)";
+      brainmapctx.fillRect(0, 0, brainmappointcanvas.width, brainmappointcanvas.height);
+      atlas.map.forEach((row,i) => {
+        brainmapctx.beginPath();
+        brainmapctx.fillStyle="rgba(0,0,255,1)";
+        let tags = channelTags.find((o, i) => {
+          if(o.tag === row.tag){
+            brainmapctx.fillStyle="rgba(0,255,0,1)";
+            return true;
+          }
+        });
+        // Draws a circle at the coordinates on the canvas
+        brainmapctx.arc(200+row.data.x, 200-row.data.y, 3, 0, Math.PI*2, true); 
+        brainmapctx.closePath();
+        brainmapctx.fill();
+      });
+    }
+
+    drawBrainMapPoints();
+
 
     //Looping animation to analyze channel data and update plots
     var analyzeEEG = () => {
@@ -480,7 +521,7 @@
       channelTags.forEach((row,i) => {
         let atlasCoord = atlas.map.find((o, j) => {
           if(o.tag === row.tag){
-            points.push({x:row.data.x+200, y:row.data.y+200, intensity:0.7});
+            points.push({x:row.data.x+200, y:200-row.data.y, intensity:0.7});
             if(viewing === "delta"){
               points[points.length - 1].size = o.data.means.delta;
             }
