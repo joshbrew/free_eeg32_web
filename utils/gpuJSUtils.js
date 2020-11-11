@@ -91,9 +91,47 @@ class gpuUtils {
         return [real,imag]; //mag(real,imag)
       });
 
+
+      //Conjugated real and imaginary parts for iDFT
+      this.gpu.addFunction(function iDFT(amplitude,len,freq){ //inverse DFT to return time domain
+        var real = 0;
+        var imag = 0;
+        for(var i = 0; i<len; i++){
+          var shared = 6.28318530718*freq*i/len; //this.thread.x is the target frequency
+          real = real+amplitude[i]*Math.sin(shared);
+          imag = imag-amplitude[i]*Math.cos(shared);
+        }
+        //var mag = Math.sqrt(real[k]*real[k]+imag[k]*imag[k]);
+        return [real,imag]; //mag(real,imag)
+      });
+
+      this.gpu.addFunction(function iDFTlist(amplitudes,len,freq,n){ //inverse DFT to return time domain 
+        var real = 0;
+        var imag = 0;
+        for(var i = 0; i<len; i++){
+          var shared = 6.28318530718*freq*i/len; //this.thread.x is the target frequency
+          real = real+amplitudes[i+(len-1)*n]*Math.sin(shared);
+          imag = imag-amplitudes[i+(len-1)*n]*Math.cos(shared);  
+        }
+        //var mag = Math.sqrt(real[k]*real[k]+imag[k]*imag[k]);
+        return [imag,real]; //mag(real,imag)
+      });
+
       //Return frequency domain based on DFT
       this.dft = this.gpu.createKernel(function (signal,len){
         var result = DFT(signal,len,this.thread.x);
+          return mag(result[0],result[1]);
+      })
+      .setDynamicOutput(true)
+      .setDynamicArguments(true)
+      .setPipeline(true)
+      .setImmutable(true);
+      //.setOutput([signal.length]) //Call before running the kernel
+      //.setLoopMaxIterations(signal.length);
+
+      //Return time domain based on iDFT
+      this.idft = this.gpu.createKernel(function (amplitudes,len){
+        var result = iDFT(amplitudes,len,this.thread.x);
           return mag(result[0],result[1]);
       })
       .setDynamicOutput(true)
@@ -152,6 +190,9 @@ class gpuUtils {
       .setDynamicArguments(true)
       .setPipeline(true)
       .setImmutable(true);
+
+      //Return time domain signal after bandpass
+   
    
     }
 
@@ -421,18 +462,6 @@ function cov1D(arr1,arr2){ //Return covariance vector of two 1D vectors of lengt
     result = cov1DKernel(arr1,arr2,mean1,mean2);
     console.timeEnd('cov1D');
     console.info(result);
-}
-
-function cov2D(mat1,mat2){ //Uhhhhh
-    var gpu = new GPU();
-
-    var matmean = gpu.createKernel(function(mat,len){ // Input 2d matrix with format [[],[]]
-
-    }).setOutput([1,1]);
-
-    var cov = gpu.createKernel(function(mat1,mat1mean,mat2,mat2mean){
-
-    }).setOutput([mat1[0].length,mat1[1].length])
 }
 
 function sumP(arr) { //Parallel Sum Operation

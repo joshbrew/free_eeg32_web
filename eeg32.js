@@ -342,29 +342,29 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		return m;
 	  }
 
-	//2D matrix covariance (e.g. for lists of signals)
-	cov2d(mat1) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
+	//2D matrix covariance (e.g. for lists of signals). Pretty fast!!!
+	cov2d(mat) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
 		//Get variance of rows and columns
 		console.time("cov2d");
-		var mat1transposed = this.transpose(mat1);
-		console.log(mat1transposed)
+		var mattransposed = this.transpose(mat);
+		console.log(mattransposed)
 		var matproducts = [];
 
 		var rowmeans = [];
 		var colmeans = [];
 		
-		mat1.forEach((row, idx) => {
+		mat.forEach((row, idx) => {
 			rowmeans.push(mean(row));
 		});
 
-		mat1transposed.forEach((col,idx) => {
+		mattransposed.forEach((col,idx) => {
 			colmeans.push(mean(col));
 		});
 
-		mat1.forEach((row,idx) => {
+		mat.forEach((row,idx) => {
 			matproducts.push([]);
 			for(var col = 0; col < row.length; col++){
-				matproducts[idx].push((mat1[idx][col]-rowmeans[idx])*(mat1[idx][col]-colmeans[col])/(row.length - 1));
+				matproducts[idx].push((mat[idx][col]-rowmeans[idx])*(mat[idx][col]-colmeans[col])/(row.length - 1));
 			}
 		});
 
@@ -385,7 +385,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		  for (var c = 0; c < bNumCols; ++c) {
 			m[r][c] = 0;             // initialize the current cell
 			for (var i = 0; i < aNumCols; ++i) {
-			  m[r][c] += matproducts[r][i] * matproductstransposed[i][c] / (mat1[0].length - 1); //
+			  m[r][c] += matproducts[r][i] * matproductstransposed[i][c] / (mat[0].length - 1); //divide by row length - 1
 			}
 		  }
 		}
@@ -396,6 +396,51 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	//Covariance between two 1D arrays
 	cov1d(arr1,arr2) {
 		return this.cov2d([arr1,arr2]);
+	}
+
+	//Simple cross correlation
+	crosscorrelation(arr1,arr2) {
+
+		var arr2buf = [...arr2,...arr2];
+		var mean1 = mean(arr1);
+		var mean2 = mean(arr2);
+
+		//Estimators
+		var arr1Est = Math.sqrt(arr1.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
+		var arr2Est = Math.sqrt(arr2.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
+
+		var correlations = [];
+
+		arr1.forEach((x,delay) => {
+			var r = 0;
+			arr1.forEach((xn,i) => {
+				r += (x - mean1) * (arr2[i - delay] - mean2);
+			});
+			correlations.push(r/(arr1Est * arr2Est));
+		});
+
+		return correlations;
+	}
+
+	//Simple autocorrelation. Better method for long series: FFT[x]^2
+	autocorrelation(arr1) {
+		var delaybuf = [...arr1,...arr1];
+		var mean1 = mean(arr1);
+
+		//Estimators
+		var arr1Est = Math.sqrt(arr1.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
+
+		var correlations = [];
+
+		arr1.forEach((x,delay) => {
+			var r = 0;
+			arr1.forEach((xn,i) => {
+				r += (x - mean1) * (delaybuf[i - delay] - mean1);
+			});
+			correlation.push(r/(arr1Est * arr1Est));
+		});
+
+		return correlations;
 	}
 
 	//Input data and averaging window, output array of moving averages (should be same size as input array, initial values not fully averaged due to window)
