@@ -307,4 +307,115 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	}
 
+	mean(arr){
+		var sum = arr.reduce((prev,curr)=> curr += prev);
+		return sum / arr.length;
+	}
+
+	variance(arr1) { //1D input arrays of length n
+		var mean1 = mean(arr1);
+		var vari = [];
+		for(var i = 0; i < arr1.length; i++){
+			vari.push((arr1[i] - mean1)/(arr1.length-1));
+		}
+		return vari;
+	}
+
+	transpose(mat){
+		return mat[0].map((_, colIndex) => mat.map(row => row[colIndex]));
+	}
+
+	//Matrix multiplication from: https://stackoverflow.com/questions/27205018/multiply-2-matrices-in-javascript
+	matmul(a, b) {
+		var aNumRows = a.length, aNumCols = a[0].length,
+			bNumRows = b.length, bNumCols = b[0].length,
+			m = new Array(aNumRows);  // initialize array of rows
+		for (var r = 0; r < aNumRows; ++r) {
+		  m[r] = new Array(bNumCols); // initialize the current row
+		  for (var c = 0; c < bNumCols; ++c) {
+			m[r][c] = 0;             // initialize the current cell
+			for (var i = 0; i < aNumCols; ++i) {
+			  m[r][c] += a[r][i] * b[i][c];
+			}
+		  }
+		}
+		return m;
+	  }
+
+	//2D matrix covariance (e.g. for lists of signals)
+	cov2d(mat1) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
+		//Get variance of rows and columns
+		console.time("cov2d");
+		var mat1transposed = this.transpose(mat1);
+		console.log(mat1transposed)
+		var matproducts = [];
+
+		var rowmeans = [];
+		var colmeans = [];
+		
+		mat1.forEach((row, idx) => {
+			rowmeans.push(mean(row));
+		});
+
+		mat1transposed.forEach((col,idx) => {
+			colmeans.push(mean(col));
+		});
+
+		mat1.forEach((row,idx) => {
+			matproducts.push([]);
+			for(var col = 0; col < row.length; col++){
+				matproducts[idx].push((mat1[idx][col]-rowmeans[idx])*(mat1[idx][col]-colmeans[col])/(row.length - 1));
+			}
+		});
+
+		/*
+			mat[y][x] = (x - rowAvg)*(x - colAvg) / (mat[y].length - 1);
+		*/
+		
+		console.log(matproducts);
+		//Transpose matrix
+		var matproductstransposed = this.transpose(matproducts);
+
+		//Matrix multiplication, stolen from: https://stackoverflow.com/questions/27205018/multiply-2-matrices-in-javascript
+		var aNumRows = matproducts.length, aNumCols = matproducts[0].length,
+			bNumRows = matproductstransposed.length, bNumCols = matproductstransposed[0].length,
+			m = new Array(aNumRows);  // initialize array of rows
+		for (var r = 0; r < aNumRows; ++r) {
+		  m[r] = new Array(bNumCols); // initialize the current row
+		  for (var c = 0; c < bNumCols; ++c) {
+			m[r][c] = 0;             // initialize the current cell
+			for (var i = 0; i < aNumCols; ++i) {
+			  m[r][c] += matproducts[r][i] * matproductstransposed[i][c] / (mat1[0].length - 1); //
+			}
+		  }
+		}
+		console.timeEnd("cov2d");
+		return m; //Covariance matrix
+	}
+
+	//Covariance between two 1D arrays
+	cov1d(arr1,arr2) {
+		return this.cov2d([arr1,arr2]);
+	}
+
+	//Input data and averaging window, output array of moving averages (should be same size as input array, initial values not fully averaged due to window)
+	sma(arr, window) {
+		var smaArr = []; //console.log(arr);
+		for(var i = 0; i < arr.length; i++) {
+			if((i == 0)) {
+				smaArr.push(arr[0]);
+			}
+			else if(i < window) { //average partial window (prevents delays on screen)
+				var arrslice = arr.slice(0,i+1);
+				smaArr.push(arrslice.reduce((previous,current) => current += previous ) / (i+1));
+			}
+			else { //average windows
+				var arrslice = arr.slice(i-window,i);
+				smaArr.push(arrslice.reduce((previous,current) => current += previous) / window);
+			}
+		} 
+		//console.log(temp);
+		return smaArr;
+	}
+
 }

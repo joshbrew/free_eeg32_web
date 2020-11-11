@@ -13,13 +13,16 @@
   <style>
     #brainmap {
       position: absolute;
-      top: 1100px;
+      right: 50px;
+      top: 600px;
     }
     #brainmappoints {
       position: absolute;
-      top:1100px;
+      right: 50px;
       z-index: 2;
+      top: 600px;
     }
+
   </style>
 
 </head>
@@ -37,19 +40,20 @@
 <input type="text" id="freqEnd" placeholder="upper bound" value="100">
 <button id="bandPass">Set BandPass</button>
 <button id="mode">Mode</button>
-<br><input type="text" id="channelView" placeholder="Format: 0,1,2,5,6,7,etc" value="0,1,2,3,4,5,6,7">
+<button id="tg2a">Theta-Gamma 2 Octave</button>
+<br><input type="text" id="channelView" placeholder="Format: 0,1,2,5,6,7,etc">
 <button id="setChannelView">Set Channel View</button>
-<input type="text" id="channelTags" placeholder="Format: 0:Fp1,2:Fpz,etc" value="0:Fp1,1:Fp2,2:Fpz">
+<input type="text" id="channelTags" placeholder="Format: 0:Fp1,2:Fz,etc">
 <button id="setTags">Set Tags</button>
 
-<h3 id="uplottitle">ADC 0 FFTs w/ Bandpass</h3>
+<h3 id="uplottitle">ADC FFTs w/ Bandpass</h3>
 <div id="adc0"></div>
 <h3>CH0 Band Amplitudes. Color codes: Purple - Delta, Orange - Theta, Green - Alpha, Blue - Beta, Red - Gamma</h3>
 <canvas id="bandAverages" style="width: 75%; height: 200px"></canvas>
 <h3>ADC0 Alpha Amplitudes (8-12Hz)</h3>
 <canvas id="alphaAverages" style="width: 75%; height: 200px"></canvas>
 
-<table>
+<table id="brainmaptable">
   <tr><td><h3>Brain Map (see "atlas" in the console and set corresponding channel tags (see "channelTags")) | </h3></td>
   <td><h4>Viewing:</h4></td>
   <td><select id="bandview">
@@ -64,6 +68,12 @@
 <canvas id="brainmappoints" style="width: 400px; height:400px;"></canvas>
 
 <script>
+    //TODO
+    /*
+      whittle everything down to the bare essentials to make the visuals all compact and summonable - like the rest of my HEG API
+      
+    */
+
 
     if(!navigator.serial){
         document.getElementById("p").innerHTML = "navigator.serial not found! Enable #enable-experimental-web-platform-features in chrome://flags (search 'experimental') then refresh";
@@ -91,13 +101,13 @@
     var posMagsList = []; // amplitudes (y-axis)
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
-    //var sounds = new SoundJS(); //For theta-gamma 2 octave
+    var sounds = null;//new SoundJS(); //For theta-gamma 2 octave
 
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       {ch: 0, tag: "Fp1"},  //Channel 0
       {ch: 1, tag: "Fp2"},  //Channel 1
-      {ch: 2, tag: "Fpz"},  //Channel 2 etc.
+      {ch: 2, tag: "Fz"},  //Channel 2 etc.
       {ch: 3, tag: "F3"},
       {ch: 4, tag: "F4"},
       {ch: 5, tag: "F7"},
@@ -113,7 +123,7 @@
     
     var points = [];
     atlas.map.forEach((row,i) => {
-      points.push({x:row.data.x*1.5+200, y:200-row.data.y*1.5, size:135, intensity:0.7});
+      points.push({x:row.data.x*1.5+200, y:200-row.data.y*1.5, size:130, intensity:0.8});
     });
     heatmap.clear();
     heatmap.addPoints(points);
@@ -151,14 +161,18 @@
     document.getElementById("mode").onclick = () => {
       if(mode === "FFT"){
         mode = "TimeSeries";
-        document.getElementById("uplottitle").innerHTML = "ADC0 signals";
+        document.getElementById("uplottitle").innerHTML = "ADC signals";
 	      plot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
       else {
         mode = "FFT";
-        document.getElementById("uplottitle").innerHTML = "ADC 0 FFTs w/ Bandpass";
+        document.getElementById("uplottitle").innerHTML = "ADC FFTs w/ Bandpass";
 	      plot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
       }
+    }
+
+    document.getElementById("tg2a").onclick = () => {
+      sounds = new SoundJS();
     }
 
     document.getElementById("setChannelView").onclick = () => {
@@ -227,9 +241,7 @@
         }
       });
 
-      val = document.getElementById("channelView").value;
-      arr = val.split(",");
-      var newSeries = [{}];
+      var newSeries = plot.series;
       arr.forEach((item,i) => {
         var found = false;
         let getTags = channelTags.find((o, j) => {
@@ -287,7 +299,6 @@
       });
     }
 
-    getBandFreqs()
 
     var plot = null;
 
@@ -331,8 +342,7 @@
       plot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
 
     }
-
-    makeuPlot();
+ 
     
     //Make smoothiejs charts
     var deltaSeries = new TimeSeries(),
@@ -395,7 +405,7 @@
 
       return coords;
     }
-
+    
     var coords = getAtlasCoordsList(atlas);
 
 
@@ -413,7 +423,7 @@
         let tags = channelTags.find((o, i) => {
           if(o.tag === row.tag){
             brainmapctx.fillStyle = "rgba(0,0,0,0.7)";
-            brainmapctx.fillText(o.ch,190+row.data.x*1.5,210-row.data.y*1.5,14);
+            brainmapctx.fillText(o.ch,185+row.data.x*1.5,210-row.data.y*1.5,14);
             
             brainmapctx.fillStyle="rgba(0,255,0,1)";
             return true;
@@ -429,6 +439,9 @@
       });
     }
 
+
+    getBandFreqs()
+    makeuPlot();
     drawBrainMapPoints();
 
 
