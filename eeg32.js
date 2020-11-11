@@ -414,7 +414,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		arr1.forEach((x,delay) => {
 			var r = 0;
 			arr1.forEach((xn,i) => {
-				r += (x - mean1) * (arr2[i - delay] - mean2);
+				r += (xn - mean1) * (arr2buf[arr2.length - 1 - delay] - mean2);
 			});
 			correlations.push(r/(arr1Est * arr2Est));
 		});
@@ -435,9 +435,9 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		arr1.forEach((x,delay) => {
 			var r = 0;
 			arr1.forEach((xn,i) => {
-				r += (x - mean1) * (delaybuf[i - delay] - mean1);
+				r += (xn - mean1) * (delaybuf[arr1.length - i - delay] - mean1);
 			});
-			correlation.push(r/(arr1Est * arr1Est));
+			correlations.push(r/(arr1Est * arr1Est));
 		});
 
 		return correlations;

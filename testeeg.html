@@ -533,6 +533,7 @@
       alphaSeries6.append(now, atlas.map[6].data.means.alpha[atlas.map[6].data.means.alpha.length-1]);
       alphaSeries7.append(now, atlas.map[7].data.means.alpha[atlas.map[7].data.means.alpha.length-1]);
       
+      var simplecoherence = 1;
 
       var points = [];
 
@@ -559,13 +560,17 @@
               points[points.length - 1].size = o.data.means.gamma;
             }
             points[points.length - 1].size *= 0.001; //Need a better method
+
+            simplecoherence *= points[points.length-1].size;
+            
             if(points[points.length - 1].size > 135){
               points[points.length - 1].size = 135;
             }
           }
         });
       });
-
+      
+      console.log("simple coherence: ", simplecoherence)
       
       heatmap.clear();
       heatmap.addPoints(points);
