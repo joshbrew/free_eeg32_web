@@ -345,7 +345,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	//2D matrix covariance (e.g. for lists of signals). Pretty fast!!!
 	cov2d(mat) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
 		//Get variance of rows and columns
-		console.time("cov2d");
+		//console.time("cov2d");
 		var mattransposed = this.transpose(mat);
 		console.log(mattransposed)
 		var matproducts = [];
@@ -389,7 +389,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			}
 		  }
 		}
-		console.timeEnd("cov2d");
+		//console.timeEnd("cov2d");
 		return m; //Covariance matrix
 	}
 
@@ -401,22 +401,28 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	//Simple cross correlation
 	crosscorrelation(arr1,arr2) {
 
-		var arr2buf = [...arr2,...arr2];
+		var arr2buf = [...arr2,...Array(arr2.length).fill(0)];
 		var mean1 = mean(arr1);
 		var mean2 = mean(arr2);
 
 		//Estimators
-		var arr1Est = Math.sqrt(arr1.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
-		var arr2Est = Math.sqrt(arr2.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
+		var arr1Est = 0;
+		arr1.forEach((x,i) => {
+			arr1Est += Math.pow(x-mean1,2);
+			arr2Est += Math.pow(arr2[i]-mean2,2);
+		});
+		arr1Est = Math.sqrt(arr1Est);
+		arr2Est += Math.sqrt(arr2Est);
 
+		var arrEstsMul = arr1Est * arr2Est
 		var correlations = [];
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			arr1.forEach((xn,i) => {
-				r += (xn - mean1) * (arr2buf[arr2.length - 1 - delay] - mean2);
-			});
-			correlations.push(r/(arr1Est * arr2Est));
+			arr1.forEach((y,i) => {
+				r += (x - mean1) * (arr2buf[arr2.length+delay-i] - mean2);
+			})
+			correlations.push(r/arrEstsMul);
 		});
 
 		return correlations;
@@ -424,22 +430,30 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	//Simple autocorrelation. Better method for long series: FFT[x]^2
 	autocorrelation(arr1) {
-		var delaybuf = [...arr1,...arr1];
+		//console.time("autocorr");
+		var delaybuf = [...arr1,...Array(arr1.length).fill(0)];
 		var mean1 = mean(arr1);
 
 		//Estimators
-		var arr1Est = Math.sqrt(arr1.reduce((sum,elem) => { sum += Math.pow(elem - mean1,2)}));
+		var arr1Est = 0;
+		arr1.forEach((x,i) => {
+			arr1Est += Math.pow(x-mean1,2);
+		});
+		arr1Est = Math.sqrt(arr1Est);
 
+		console.log(arr1Est);
+		var arr1estsqrd = arr1Est * arr1Est
 		var correlations = [];
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			arr1.forEach((xn,i) => {
-				r += (xn - mean1) * (delaybuf[arr1.length - i - delay] - mean1);
-			});
-			correlations.push(r/(arr1Est * arr1Est));
+			arr1.forEach((y,i) => {
+				r += (x - mean1) * (delaybuf[arr1.length+delay-i] - mean1);
+			})
+			correlations.push(r/arr1estsqrd);
 		});
 
+		//console.timeEnd("autocorr");
 		return correlations;
 	}
 
