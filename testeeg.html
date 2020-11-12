@@ -523,7 +523,7 @@
       console.log("Channels processed: ", buffer.length);
 
       if(fdbackmode === "coherence"){
-        var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs)
+        var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs on the end
         coherenceResults = []; //Get a total product of all of the correlogram FFT arrays multiplied by all of the signal FFT arrays then check the alpha band for coherence
         correlogram_FFTs.forEach((fft,i) => {
           fft.forEach((elem,j) => {
