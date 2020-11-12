@@ -281,11 +281,6 @@ class gpuUtils {
       
       signalBufferProcessed = outputTex.toArray();
       outputTex.delete();
-      //console.log(signalBufferProcessed);
-      //var orderedMagsList = [];
-      //for(var i = 0; i < signalBufferProcessed.length; i+=nSamplesPerChannel){
-        //orderedMagsList.push(this.orderMagnitudes([...signalBufferProcessed.slice(i,i+nSamplesPerChannel)]));
-      //}
 
       //TODO: Optimize for SPEEEEEEED.. or just pass it str8 to a shader
       var freqDist = this.bandPassWindow(freqStart,freqEnd,sampleRate);

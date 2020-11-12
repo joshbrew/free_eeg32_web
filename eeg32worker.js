@@ -27,14 +27,14 @@ addEventListener('message',function(e){
     var dat = e.data;
     var output = {};
 
-    if(dat.foo === "xcor"){ output.dat = eeg32.crosscorrelation(e.data.input[0],e.data.input[1])}   //Takes 2 1D arrays
-    if(dat.foo === "autocor"){ output.dat = eeg32.autocorrelation(e.data.input)}                    //Takes 1 1D array
-    if(dat.foo === "cov1d"){ output.dat = eeg32.cov1d(e.data.input[0],e.data.input[1])}             //Takes 2 1D arrays
-    if(dat.foo === "cov2d"){ output.dat = eeg32.cov2d(e.data.input) }                               //Takes 1 2D array with equal width rows
-    if(dat.foo === "sma"){ output.dat = eeg32.sma(e.data.input[0],e.data.input[1])}                 //Takes 1 1D array and an sma window size
-    if(dat.foo === "dft"){ var gpu = new gpuUtils(); output.dat = gpu.dft(input[0],input[1]) }      //Takes 1 1D array and the sample rate
-    
-
+    if(dat.foo === "xcor"){ output.dat = eeg32.crosscorrelation(e.data.input[0],e.data.input[1]);}              //Takes 2 1D arrays
+    if(dat.foo === "autocor"){ output.dat = eeg32.autocorrelation(e.data.input);}                               //Takes 1 1D array
+    if(dat.foo === "cov1d"){ output.dat = eeg32.cov1d(e.data.input[0],e.data.input[1]);}                        //Takes 2 1D arrays
+    if(dat.foo === "cov2d"){ output.dat = eeg32.cov2d(e.data.input); }                                          //Takes 1 2D array with equal width rows
+    if(dat.foo === "sma"){ output.dat = eeg32.sma(e.data.input[0],e.data.input[1]);}                            //Takes 1 1D array and an sma window size
+    if(dat.foo === "dft"){ var gpu = new gpuUtils(); output.dat = gpu.gpuDFT(input[0],input[1]); }              //Takes 1 1D array and the sample rate
+    if(dat.foo === "multidft") { var gpu = new gpuUtils(); output.dat = gpu.MultiChannelDFT(input[0],input[1]);}  //Takes 1 2D array with equal width rows, and the number of seconds of data being given
+    if(dat.foo === "multibandpassdft") { var gpu = new gpuUtils(); output.dat = gpu.MultiChannelDFT_Bandpass(input[0],input[1],input[2],input[3]);} //Accepts 1 2D array of equal width, number of seconds of data, beginning frequency, ending frequency
     else {output.dat = "frodobaggins"}
 
     postMessage(output);
