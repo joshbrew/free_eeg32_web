@@ -307,6 +307,19 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	}
 
+	static genSineWave(fs=512,freq=20,nSec=1,freq2=0){
+		var sineWave = [];
+		var t = [];
+		var increment = 1/fs; //x-axis time increment based on sample rate
+		for (var ti = 0; ti < nSec; ti+=increment){ 
+			var amplitude = Math.sin(2*Math.PI*freq*ti);
+			amplitude += Math.sin(2*Math.PI*freq2*ti); //Add interference
+			sineWave.push(amplitude);
+			t.push(ti);
+		}
+		return [t,sineWave]; // [[times],[amplitudes]]
+	}
+
 	static mean(arr){
 		var sum = arr.reduce((prev,curr)=> curr += prev);
 		return sum / arr.length;
@@ -398,9 +411,8 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		return this.cov2d([arr1,arr2]);
 	}
 
-	//Simple cross correlation. Not very efficient
+	//Simple cross correlation.
 	static crosscorrelation(arr1,arr2) {
-		console.time("crosscorrelation");
 		var arr2buf = [...arr2,...Array(arr2.length).fill(0)];
 		var mean1 = this.mean(arr1);
 		var mean2 = this.mean(arr2);
@@ -416,7 +428,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			r += arr1.reduce((sum,item,i) => (item - mean1)*(arr2buf[arr2.length+delay-i]-mean2));
+			r += arr1.reduce((sum,item,i) => sum += (item - mean1)*(arr2buf[delay+i]-mean2));
 			//arr1.forEach((y,i) => {
 			//	r += (x - mean1) * (arr2buf[arr2.length+delay-i] - mean2);
 			//})
@@ -442,7 +454,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			r += arr1.reduce((sum,item,i) => (item - mean1)*(delaybuf[arr1.length+delay-i]-mean1));
+			r += arr1.reduce((sum,item,i) => sum += (item - mean1)*(delaybuf[delay+i]-mean1));
 			correlations.push(r/arr1estsqrd);
 		});
 

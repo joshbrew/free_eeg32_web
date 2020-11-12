@@ -40,7 +40,7 @@
 <input type="text" id="freqEnd" placeholder="upper bound" value="100">
 <button id="bandPass">Set BandPass</button>
 <button id="mode">Mode</button>
-<button id="tg2a">Theta-Gamma 2 Octave</button>
+<button id="tg2o">Theta-Gamma 2 Octave</button>
 <br><input type="text" id="channelView" placeholder="Format: 0,1,2,5,6,7,etc">
 <button id="setChannelView">Set Channel View</button>
 <input type="text" id="channelTags" placeholder="Format: 0:Fp1,2:Fz,etc">
@@ -105,7 +105,8 @@
     var freqStart = 0; //Beginning of DFT frequencies
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
-    var mode = "FFT"; //"TimeSeries"
+    var graphmode = "FFT"; //"TimeSeries"
+    var fdbackmode = "alpha_coherence"; //tg2o
     var nSecGraph = 10; //number of seconds to show on the graph
 
     var viewing = "alpha";
@@ -171,19 +172,19 @@
     }
 
     document.getElementById("mode").onclick = () => {
-      if(mode === "FFT"){
-        mode = "TimeSeries";
+      if(graphmode === "FFT"){
+        graphmode = "TimeSeries";
         document.getElementById("uplottitle").innerHTML = "ADC signals";
 	      plot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
       else {
-        mode = "FFT";
+        graphmode = "FFT";
         document.getElementById("uplottitle").innerHTML = "ADC FFTs w/ Bandpass";
 	      plot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
       }
     }
 
-    document.getElementById("tg2a").onclick = () => {
+    document.getElementById("tg2o").onclick = () => {
       sounds = new SoundJS();
     }
 
@@ -470,18 +471,47 @@
       //posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd);
       //console.timeEnd("GPU DFTx32");
       
-      //Select only chosen channels
+      //Select only chosen channels for FFTs
       for(var i = 0; i < channelTags.length; i++){
-        if(i < nChannels){
+        if(i < nChannels) {
           var channel = "A"+channelTags[i].ch;
-          buffer.push(EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter));
+          var dat = EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter);
+          buffer.push(dat);
         }
       }
+      if(fdbackmode === "coherence") {
+        var correlograms
+        var xcorbuf;
+        channelTags.forEach((row,i) => {
+          var channel = "A"+row.ch;
+          var dat = EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter);
+          xcorbuf.push(dat);
+        });
+        //Compare other channels to one channel to save time/processing. First result is an autocorrelation
+        xcorbuf.forEach((buffer,i) => {
+          correlograms.push(eeg32.crosscorrelation(xcorbuf[0],buffer));
+        });
+        //Then take FFTs of correlograms
+        //var correlogram_FFTs = gpu.MultiChannelDFT_BandPass(xcor)[1];
+        buffer.push(...correlograms);
+        //Then use as a base multiplier on the original FFTs
+        var coherenceproducts = [];
+        
+      }
+      
 
       console.time("GPU DFT");
       posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd)[1];
       console.timeEnd("GPU DFT");
       console.log("Channels processed: ", buffer.length);
+
+      if(fdbackmode === "coherence"){
+        var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs)
+        var coherenceResults;
+        correlogram_FFTs.forEach((fft,i) => {
+          
+        });
+      }
 
       //Separate and report channel results by band
       channelTags.forEach((row,i) => {
@@ -496,7 +526,7 @@
       atlas.shared.bandPassWindows.push(bandPassWindow);//Push the x-axis values for each frame captured as they may change
       
 
-      if(mode === "FFT"){
+      if(graphmode === "FFT"){
 
         //Animate plot(s)
         uPlotData = [
@@ -509,7 +539,7 @@
         
       }
 
-      else if (mode === "TimeSeries") {
+      else if (graphmode === "TimeSeries") {
         var nsamples = Math.floor(sps*nSecGraph);
 
         uPlotData = [
