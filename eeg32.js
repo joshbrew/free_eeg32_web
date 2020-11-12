@@ -307,13 +307,13 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	}
 
-	mean(arr){
+	static mean(arr){
 		var sum = arr.reduce((prev,curr)=> curr += prev);
 		return sum / arr.length;
 	}
 
-	variance(arr1) { //1D input arrays of length n
-		var mean1 = mean(arr1);
+	static variance(arr1) { //1D input arrays of length n
+		var mean1 = this.mean(arr1);
 		var vari = [];
 		for(var i = 0; i < arr1.length; i++){
 			vari.push((arr1[i] - mean1)/(arr1.length-1));
@@ -321,12 +321,12 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		return vari;
 	}
 
-	transpose(mat){
+	static transpose(mat){
 		return mat[0].map((_, colIndex) => mat.map(row => row[colIndex]));
 	}
 
 	//Matrix multiplication from: https://stackoverflow.com/questions/27205018/multiply-2-matrices-in-javascript
-	matmul(a, b) {
+	static matmul(a, b) {
 		var aNumRows = a.length, aNumCols = a[0].length,
 			bNumRows = b.length, bNumCols = b[0].length,
 			m = new Array(aNumRows);  // initialize array of rows
@@ -343,7 +343,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	  }
 
 	//2D matrix covariance (e.g. for lists of signals). Pretty fast!!!
-	cov2d(mat) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
+	static cov2d(mat) { //[[x,y,z,w],[x,y,z,w],...] input list of vectors of the same length
 		//Get variance of rows and columns
 		//console.time("cov2d");
 		var mattransposed = this.transpose(mat);
@@ -354,11 +354,11 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		var colmeans = [];
 		
 		mat.forEach((row, idx) => {
-			rowmeans.push(mean(row));
+			rowmeans.push(this.mean(row));
 		});
 
 		mattransposed.forEach((col,idx) => {
-			colmeans.push(mean(col));
+			colmeans.push(this.mean(col));
 		});
 
 		mat.forEach((row,idx) => {
@@ -394,71 +394,64 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	}
 
 	//Covariance between two 1D arrays
-	cov1d(arr1,arr2) {
+	static cov1d(arr1,arr2) {
 		return this.cov2d([arr1,arr2]);
 	}
 
-	//Simple cross correlation
-	crosscorrelation(arr1,arr2) {
-
+	//Simple cross correlation. Not very efficient
+	static crosscorrelation(arr1,arr2) {
+		console.time("crosscorrelation");
 		var arr2buf = [...arr2,...Array(arr2.length).fill(0)];
-		var mean1 = mean(arr1);
-		var mean2 = mean(arr2);
+		var mean1 = this.mean(arr1);
+		var mean2 = this.mean(arr2);
 
 		//Estimators
-		var arr1Est = 0;
-		arr1.forEach((x,i) => {
-			arr1Est += Math.pow(x-mean1,2);
-			arr2Est += Math.pow(arr2[i]-mean2,2);
-		});
+		var arr1Est = arr1.reduce((sum,item) => sum += Math.pow(item-mean1,2));
 		arr1Est = Math.sqrt(arr1Est);
-		arr2Est += Math.sqrt(arr2Est);
+		var arr2Est = arr2.reduce((sum,item) => sum += Math.pow(item-mean1,2));
+		arr2Est = Math.sqrt(arr2Est);
 
 		var arrEstsMul = arr1Est * arr2Est
 		var correlations = [];
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			arr1.forEach((y,i) => {
-				r += (x - mean1) * (arr2buf[arr2.length+delay-i] - mean2);
-			})
+			r += arr1.reduce((sum,item,i) => (item - mean1)*(arr2buf[arr2.length+delay-i]-mean2));
+			//arr1.forEach((y,i) => {
+			//	r += (x - mean1) * (arr2buf[arr2.length+delay-i] - mean2);
+			//})
 			correlations.push(r/arrEstsMul);
 		});
 
+		console.timeEnd("crosscorrelation")
 		return correlations;
 	}
 
-	//Simple autocorrelation. Better method for long series: FFT[x]^2
-	autocorrelation(arr1) {
-		//console.time("autocorr");
+	//Simple autocorrelation. Better method for long series: FFT[x1] .* FFT[x2]
+	static autocorrelation(arr1) {
+		console.time("autocorr");
 		var delaybuf = [...arr1,...Array(arr1.length).fill(0)];
-		var mean1 = mean(arr1);
+		var mean1 = this.mean(arr1);
 
 		//Estimators
-		var arr1Est = 0;
-		arr1.forEach((x,i) => {
-			arr1Est += Math.pow(x-mean1,2);
-		});
+		var arr1Est = arr1.reduce((sum,item) => sum += Math.pow(item-mean1,2));
 		arr1Est = Math.sqrt(arr1Est);
 
-		console.log(arr1Est);
 		var arr1estsqrd = arr1Est * arr1Est
 		var correlations = [];
 
 		arr1.forEach((x,delay) => {
 			var r = 0;
-			arr1.forEach((y,i) => {
-				r += (x - mean1) * (delaybuf[arr1.length+delay-i] - mean1);
-			})
+			r += arr1.reduce((sum,item,i) => (item - mean1)*(delaybuf[arr1.length+delay-i]-mean1));
 			correlations.push(r/arr1estsqrd);
 		});
 
-		//console.timeEnd("autocorr");
+		console.timeEnd("autocorr");
 		return correlations;
 	}
 
 	//Input data and averaging window, output array of moving averages (should be same size as input array, initial values not fully averaged due to window)
-	sma(arr, window) {
+	static sma(arr, window) {
 		var smaArr = []; //console.log(arr);
 		for(var i = 0; i < arr.length; i++) {
 			if((i == 0)) {

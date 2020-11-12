@@ -82,6 +82,18 @@
     try { var EEG = new eeg32(); }
     catch (error) { alert("eeg32.js err: ", error) }
 
+    //var worker = new Worker(URL.createObjectURL(new Blob(["("+timedCount.toString()+")()"], {type: 'text/javascript'})));
+
+    /*
+    var worker = new Worker("./eeg32worker.js");
+    worker.onmessage = (e) => {
+      //Do something with received data
+        console.log(e.data);
+    }
+    worker.postMessage("test");
+    */
+
+
     try {
       window.gpu = new gpuUtils();
     }
@@ -569,7 +581,7 @@
           }
         });
       });
-      
+
       console.log("simple coherence: ", simplecoherence)
       
       heatmap.clear();
