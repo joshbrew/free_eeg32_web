@@ -24,7 +24,7 @@ testeeg.html
 There are two main classes you should know about.
 
 eeg32 in eeg32.js
-* Contains all necessary functions to connect to, parse, and organize the EEG32 data.
+* Contains all necessary functions to connect to, parse, and organize the FreeEEG32 data.
 * Increasing number of simple but essential signal analysis functions:
 
 Class instance functions:
