@@ -128,7 +128,7 @@
             //console.log(list)
             console.timeEnd("gpuListDFT (128 channels, ordered)");
             var fftwindow = gpuClass.bandPassWindow(freqStart,freqEnd,fs);
-           
+           console.log(summedMags[0]);
     //console.log(gpuresult3.length)
             //console.log(orderedMagsList);
 
@@ -162,7 +162,7 @@
                 name: 'fftjs',    
                 xbins: {  size: 1  }
             }],[{
-                x:fftwindow,
+                x:summedMags[0],
                 y:summedMags[1][0],
                 type: 'line',
                 marker: {

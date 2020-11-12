@@ -288,10 +288,8 @@ class gpuUtils {
       //}
 
       //TODO: Optimize for SPEEEEEEED.. or just pass it str8 to a shader
-      var freqDist = this.makeFrequencyDistribution(nSamplesPerChannel, sampleRate);
-      var posDist = [...freqDist.slice(Math.ceil(freqDist.length*0.5),freqDist.length)];
-
-      return [posDist, this.posMagnitudes(signalBufferProcessed,nSeconds,sampleRate,nSamplesPerChannel)]; //Returns x (frequencies) and y axis (magnitudes)
+      var freqDist = this.bandPassWindow(freqStart,freqEnd,sampleRate);
+      return [freqDist, this.orderBPMagnitudes(signalBufferProcessed,nSeconds,sampleRate,nSamplesPerChannel)]; //Returns x (frequencies) and y axis (magnitudes)
   }
 
   orderMagnitudes(unorderedMags){
@@ -310,16 +308,14 @@ class gpuUtils {
     return freqDist;
   }
 
-  //Get positive magnitudes
-  posMagnitudes(signalBufferProcessed,nSeconds,sampleRate,nSamplesPerChannel) {
+  //Order and sum positive magnitudes from bandpass DFT
+  orderBPMagnitudes(signalBufferProcessed,nSeconds,sampleRate,nSamplesPerChannel) {
     var posMagsList = [];
     for(var i = 0; i < signalBufferProcessed.length; i+=nSamplesPerChannel){
       posMagsList.push([...signalBufferProcessed.slice(i,Math.ceil(nSamplesPerChannel*.5+i))]);
-      //orderedMagsList.push([...signalBufferProcessed.slice(Math.ceil(nSamplesPerChannel*.5+i),nSamplesPerChannel+i),...signalBufferProcessed.slice(i,Math.ceil(nSamplesPerChannel*.5+i))]);
-    }
+     }
 
     var summedMags = [];
-    //console.log(posMagsList);
     
     if(nSeconds > 1) { //Need to sum results when sample time > 1 sec
       posMagsList.forEach((row, k) => {
@@ -340,10 +336,6 @@ class gpuUtils {
       return summedMags;  
     }
     else {return posMagsList;}
-
-    //console.log(posMagsList);
-  
-    return posMagsList;
   }
 
   //Returns the x axis (frequencies) for the bandpass filter amplitudes
