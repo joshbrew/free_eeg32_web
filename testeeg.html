@@ -479,7 +479,7 @@
       }
 
       console.time("GPU DFT");
-      posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd);
+      posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd)[1];
       console.timeEnd("GPU DFT");
       console.log("Channels processed: ", buffer.length);
 

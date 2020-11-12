@@ -32,6 +32,8 @@ addEventListener('message',function(e){
     if(dat.foo === "cov1d"){ output.dat = eeg32.cov1d(e.data.input[0],e.data.input[1])}             //Takes 2 1D arrays
     if(dat.foo === "cov2d"){ output.dat = eeg32.cov2d(e.data.input) }                               //Takes 1 2D array with equal width rows
     if(dat.foo === "sma"){ output.dat = eeg32.sma(e.data.input[0],e.data.input[1])}                 //Takes 1 1D array and an sma window size
+    if(dat.foo === "dft"){ var gpu = new gpuUtils(); output.dat = gpu.dft(input[0],input[1]) }      //Takes 1 1D array and the sample rate
+    
 
     else {output.dat = "frodobaggins"}
 

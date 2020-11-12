@@ -6,6 +6,8 @@
         <div id="freq"></div>
         Sine Wave Graph.
         <div id="sinechart"></div>
+        Single GPU DFT result:
+        <div id="dftchart"></div>
         Homebrew DFT graph. 0-50Hz bandpass
         <div id="homebrewfft"></div>
         jsFFT result. 
@@ -93,34 +95,40 @@
             console.time("gpuDFT (1 channel)");
             gpuClass.dft.setOutput([sineWave.length]);
             gpuClass.dft.setLoopMaxIterations(sineWave.length);
-            var gpuresult = gpuClass.dft(sineWave,sineWave.length).toArray();
+            var gpuresult = gpuClass.gpuDFT(sineWave,sec)[1];
             console.timeEnd("gpuDFT (1 channel)");
+            //console.log(gpuresult);
             console.log("GPU.js performance can vary");
+
 
             var orderedMags = [...gpuresult.slice(Math.ceil(gpuresult.length*.5),gpuresult.length),...gpuresult.slice(0,Math.ceil(gpuresult.length*.5))];
             //console.log(orderedMags.length);
             //var sigList2D = [sineWave,sineWave,sineWave];
             
             
-            //var sigListBuffer = [...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave];
+            var sigListBuffer = [...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave,...sineWave];
             //console.log(sigList1D);
 
             var signalBuffer = [sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave];
             var signalBuffer2 = [sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave]
             var freqStart = 0;
-            var freqEnd = 50;
+            var freqEnd = 250;
             var freqEnd_nyquist = 50*2; //2x the end frequency of our bandpass (nyquist sampling rate)
 
             console.time("gpuListDFT (128 channels, ordered)");
-            gpuClass.listdft1D_windowed.setOutput([signalBuffer[0].length*signalBuffer.length]); //Set output to length of list of signals
-            gpuClass.listdft1D_windowed.setLoopMaxIterations(sineWave.length); //Set loop size to the length of one signal (assuming all are uniform length)
-            //var gpuresult2 = gpuClass.listdft2D(sigList2D);
-            //var gpuresult3 = gpuClass.listdft1D(sigList1D,sineWave.length/sec);
-            var summedMags = gpuClass.MultiChannelDFT_BandPass(signalBuffer,sec,freqStart,freqEnd);
+            gpuClass.listdft1D.setOutput([signalBuffer[0].length*signalBuffer.length]); //Set output to length of list of signals
+            gpuClass.listdft1D.setLoopMaxIterations(sineWave.length); //Set loop size to the length of one signal (assuming all are uniform length)
+            
+
+            //gpuClass.listdft1D_windowed.setOutput([signalBuffer[0].length*signalBuffer.length]); //Set output to length of list of signals
+            //gpuClass.listdft1D_windowed.setLoopMaxIterations(sineWave.length); //Set loop size to the length of one signal (assuming all are uniform length)
            
+            //var list = gpuClass.MultiChannelDFT(signalBuffer,sec);
+            var summedMags = gpuClass.MultiChannelDFT_BandPass(signalBuffer,sec,freqStart,freqEnd)[1];
+            //console.log(list)
             console.timeEnd("gpuListDFT (128 channels, ordered)");
            
-            var fftwindow = gpuClass.bandPassWindow(freqStart,freqEnd,fs)
+            var fftwindow = gpuClass.bandPassWindow(freqStart,freqEnd,fs);
            
     //console.log(gpuresult3.length)
             //console.log(orderedMagsList);
@@ -182,6 +190,16 @@
                 },
                 name: 'homebrewcfft',    
                 xbins: {  size: 1  }
+            }],
+            [{
+                x:freqDom[0],
+                y:orderedMags,
+                type: 'line',
+                marker: {
+                    color: "rgba(100,255,100, 1)"
+                },
+                name: 'homebrewcfft',    
+                xbins: {  size: 1  }
             }]
             ];
             var config = { 
@@ -189,6 +207,7 @@
                 responsive: true, 
             }
             Plotly.newPlot("sinechart",data[0],undefined,config);
+            Plotly.newPlot("dftchart",data[5],undefined,config);
             Plotly.newPlot("homebrewfft",data[2],undefined,config);
             Plotly.newPlot("fftchart",data[1],undefined,config);
             Plotly.newPlot("phasechart",data[3],undefined,config);
