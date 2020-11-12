@@ -10,7 +10,7 @@
         <div id="dftchart"></div>
         Homebrew DFT graph. 0-50Hz bandpass
         <div id="homebrewfft"></div>
-        jsFFT result. 
+        jsFFT result.
         <div id="fftchart"></div>
         Phase Spectrum from jsFFT result
         <div id="phasechart"></div>
@@ -32,7 +32,7 @@
             var fs = 512; // Sample rate
             var freq = 10; // Generate this frequency
             var increment = 1/fs; //x-axis time increment based on sample rate
-            var sec = 4; //Seconds of data to generate 
+            var sec = 3.5; //Seconds of data to generate 
             document.getElementById("freq").innerHTML = freq + " Hz, at "+fs+" samples per sec";
             for (var ti = 0; ti < sec-increment; ti+=increment){ //200 sps, 3 sec
                 var amplitude = Math.sin(2*Math.PI*freq*ti);
@@ -63,9 +63,9 @@
             var orderedPhaseSpectrum = [...phaseSpectrum.slice(Math.ceil(phaseSpectrum.length/2),phaseSpectrum.length),...phaseSpectrum.slice(0,Math.ceil(phaseSpectrum.length/2))]
 
 
-            console.time("cfftjs (1 channel)");
+            console.time("cfftjs homebrew (1 channel CPU)");
             var freqDom = frequencyDomain(sineWave,fs);
-            console.timeEnd("cfftjs (1 channel)");
+            console.timeEnd("cfftjs homebrew (1 channel CPU)");
             //console.info(freqDom); 
 
             //https://www.codeproject.com/Tips/352127/Fast-Fourier-Transform-using-DX
@@ -112,7 +112,7 @@
             var signalBuffer = [sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave];
             var signalBuffer2 = [sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave,sineWave]
             var freqStart = 0;
-            var freqEnd = 250;
+            var freqEnd = 50;
             var freqEnd_nyquist = 50*2; //2x the end frequency of our bandpass (nyquist sampling rate)
 
             console.time("gpuListDFT (128 channels, ordered)");
@@ -124,10 +124,9 @@
             //gpuClass.listdft1D_windowed.setLoopMaxIterations(sineWave.length); //Set loop size to the length of one signal (assuming all are uniform length)
            
             //var list = gpuClass.MultiChannelDFT(signalBuffer,sec);
-            var summedMags = gpuClass.MultiChannelDFT_BandPass(signalBuffer,sec,freqStart,freqEnd)[1];
+            var summedMags = gpuClass.MultiChannelDFT_BandPass(signalBuffer,sec,freqStart,freqEnd);
             //console.log(list)
             console.timeEnd("gpuListDFT (128 channels, ordered)");
-           
             var fftwindow = gpuClass.bandPassWindow(freqStart,freqEnd,fs);
            
     //console.log(gpuresult3.length)
@@ -164,7 +163,7 @@
                 xbins: {  size: 1  }
             }],[{
                 x:fftwindow,
-                y:summedMags[0],
+                y:summedMags[1][0],
                 type: 'line',
                 marker: {
                     color: "rgba(100,255,100, 1)"
