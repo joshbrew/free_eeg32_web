@@ -307,6 +307,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	}
 
+	//Generate sinewave, you can add a noise frequency in too. Array length will be Math.ceil(fs*nSec)
 	static genSineWave(fs=512,freq=20,nSec=1,freq2=0){
 		var sineWave = [];
 		var t = [];

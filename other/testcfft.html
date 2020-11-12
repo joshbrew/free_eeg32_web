@@ -101,7 +101,7 @@
             console.log("GPU.js performance can vary");
 
 
-            var orderedMags = [...gpuresult.slice(Math.ceil(gpuresult.length*.5),gpuresult.length),...gpuresult.slice(0,Math.ceil(gpuresult.length*.5))];
+            //var orderedMags = [...gpuresult.slice(Math.ceil(gpuresult.length*.5),gpuresult.length),...gpuresult.slice(0,Math.ceil(gpuresult.length*.5))];
             //console.log(orderedMags.length);
             //var sigList2D = [sineWave,sineWave,sineWave];
             
@@ -192,7 +192,7 @@
             }],
             [{
                 x:freqDom[0],
-                y:orderedMags,
+                y:gpuresult[1],
                 type: 'line',
                 marker: {
                     color: "rgba(100,255,100, 1)"

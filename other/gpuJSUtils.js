@@ -211,7 +211,7 @@ class gpuUtils {
         var signalBufferProcessed = outputTex.toArray();
         //console.log(signalBufferProcessed);
         outputTex.delete();
-        return [freqDist,signalBufferProcessed]; //Returns x (frequencies) and y axis (magnitudes)
+        return [freqDist,this.orderMagnitudes(signalBufferProcessed)]; //Returns x (frequencies) and y axis (magnitudes)
       }
       else {
         var tex = outputTex; 
