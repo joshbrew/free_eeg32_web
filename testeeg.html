@@ -112,6 +112,7 @@
     var viewing = "alpha";
 
     var posMagsList = []; // amplitudes (y-axis)
+    var coherenceResults = [];
     var bandPassWindow = gpu.bandPassWindow(freqStart,freqEnd,sps); // frequencies (x-axis)
 
     var sounds = null;//new SoundJS(); //For theta-gamma 2 octave
@@ -177,11 +178,29 @@
         document.getElementById("uplottitle").innerHTML = "ADC signals";
 	      plot.axes[0].values = (u, vals, space) => vals.map(v => +(v*0.001).toFixed(1) + "s");
       }
-      else {
+      else if (graphmode === "Coherence"){
+
         graphmode = "FFT";
-        document.getElementById("uplottitle").innerHTML = "ADC FFTs w/ Bandpass";
-	      plot.axes[0].values = (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz");
+        plot.destroy();
+        makeuPlot();
+        
       }
+      else if (graphmode === "TimeSeries") {
+        graphmode = "Coherence";
+        
+        var newSeries = [{}];
+        newSeries.push({
+            label:"Coherence",
+            value: (u, v) => v == null ? "-" : v.toFixed(1),
+            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+          });
+
+        plot.destroy();
+        makeuPlot(newSeries);
+        document.getElementById("uplottitle").innerHTML = "Coherence from selected signals";
+      
+      }
+
     }
 
     document.getElementById("tg2o").onclick = () => {
@@ -332,7 +351,7 @@
       }
       
       var uPlotOptions = {
-        title: "ADC0",
+        title: "EEG Output",
         width: 1000,
         height: 300,
         series: newSeries,
@@ -495,8 +514,6 @@
         //var correlogram_FFTs = gpu.MultiChannelDFT_BandPass(xcor)[1];
         buffer.push(...correlograms);
         //Then use as a base multiplier on the original FFTs
-        var coherenceproducts = [];
-        
       }
       
 
@@ -507,10 +524,18 @@
 
       if(fdbackmode === "coherence"){
         var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs)
-        var coherenceResults;
+        coherenceResults = []; //Get a total product of all of the correlogram FFT arrays multiplied by all of the signal FFT arrays then check the alpha band for coherence
         correlogram_FFTs.forEach((fft,i) => {
-          
+          fft.forEach((elem,j) => {
+            if(i === 0){
+              coherenceResults.push(posMagsList[i][j]*elem);
+            }
+            else{
+              coherenceResults[j] *= (posMagsList[i][j]*elem);
+            }
+          });
         });
+        console.log(coherenceResults);
       }
 
       //Separate and report channel results by band
@@ -549,6 +574,14 @@
         channelTags.forEach((row,i) => {
           uPlotData.push(EEG.data["A"+row.ch].slice(EEG.data.counter - nsamples, EEG.data.counter));
         });
+      }
+
+      else if (graphmode === "Coherence") {
+        uPlotData = [
+          bandPassWindow,
+          coherenceResults
+        ];
+        plot.setData(uPlotData);
       }
 
       //Update visuals
