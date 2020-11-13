@@ -106,7 +106,7 @@
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
     var graphmode = "FFT"; //"TimeSeries" "Coherence"
-    var fdbackmode = "coherence"; //tg2o
+    var fdbackmode = "coherence"; //"tg2o"
     var nSecGraph = 10; //number of seconds to show on the graph
 
     var viewing = "alpha";
@@ -119,8 +119,8 @@
 
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
-      {ch: 5, tag: "T3"},  //Channel 0
-      {ch: 25, tag: "T4"}  //Channel 1
+      {ch: 5, tag: "T3", viewing: true},  //Channel 0
+      {ch: 25, tag: "T4", viewing: true}  //Channel 1
     ]; 
     /*
       {ch: 2, tag: "Fz"},  //Channel 2 etc.
@@ -216,9 +216,11 @@
       var newSeries = [{}];
       arr.forEach((item,i) => {
         var found = false;
+        channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
         let getTags = channelTags.find((o, j) => {
         if((o.ch === parseInt(item)) || (o.tag === item)){
           //console.log(item);
+          channelTags[j].viewing = true;
           newSeries.push({
             label:"A"+o.ch + ", Tag: "+o.tag,
             value: (u, v) => v == null ? "-" : v.toFixed(1),
@@ -230,7 +232,7 @@
         });
         if (found === false){ //add tag
           if(parseInt(item) !== NaN){
-            channelTags.push({ch:parseInt(item), tag: null});
+            channelTags.push({ch:parseInt(item), tag: null, viewing:true});
             newSeries.push({
               label:"A"+parseInt(item) + ", Tag:" + null,
               value: (u, v) => v == null ? "-" : v.toFixed(1),
@@ -254,25 +256,29 @@
       if(val.length === 0) { return; }
       //console.log(val);
       var arr = val.split(",");
+      channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
       //console.log(arr);
       arr.forEach((item,i) => {
         var dict = item.split(":");
         var found = false;
-        let setTags = channelTags.find((o, i) => {
+        let setTags = channelTags.find((o, j) => {
           if(o.ch === parseInt(dict[0])){
             //console.log(o);
-            channelTags[i].tag = dict[1];
+            channelTags[j].tag = dict[1];
+            channelTags[j].viewing = true;
             found = true;
             return true;
             }
           else if(o.tag === dict[1]){
-            channelTags[i].tag = null; //Set tag to null since it's being assigned to another channel
+            channelTags[j].tag = null; //Set tag to null since it's being assigned to another channel
           }
         });
         if (found === false){
           var ch = parseInt(dict[0]);
-          if((ch > 0) && (ch < nChannels)){
-            channelTags.push({ch:parseInt(ch), tag: dict[1]});
+          if(ch !== NaN) {
+            if((ch > 0) && (ch < nChannels)){
+              channelTags.push({ch:parseInt(ch), tag: dict[1], viewing: true});
+            }
           }
         }
       });
@@ -553,7 +559,9 @@
         ];
 
         channelTags.forEach((row,i) => {
-          uPlotData.push(posMagsList[i]);
+          if(row.viewing === true) {
+            uPlotData.push(posMagsList[i]);
+          }
         });
         
       }
@@ -566,7 +574,9 @@
         ];
 
         channelTags.forEach((row,i) => {
-          uPlotData.push(EEG.data["A"+row.ch].slice(EEG.data.counter - nsamples, EEG.data.counter));
+          if(row.viewing === true) {
+            uPlotData.push(EEG.data["A"+row.ch].slice(EEG.data.counter - nsamples, EEG.data.counter));
+          }
         });
       }
 
