@@ -244,6 +244,7 @@
       });
 
       plot.destroy();
+      plot = null;
       makeuPlot(newSeries);
     }
     
@@ -275,7 +276,7 @@
         }
       });
 
-      var newSeries = plot.series;
+      var newSeries = []; //plot.series;
       arr.forEach((item,i) => {
         var found = false;
         let getTags = channelTags.find((o, j) => {
