@@ -213,10 +213,10 @@
       var val = document.getElementById("channelView").value;
       if(val.length === 0) { return; }
       var arr = val.split(",");
+      channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
       var newSeries = [{}];
       arr.forEach((item,i) => {
         var found = false;
-        channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
         let getTags = channelTags.find((o, j) => {
         if((o.ch === parseInt(item)) || (o.tag === item)){
           //console.log(item);
@@ -247,7 +247,7 @@
 
       if(graphmode !== "Coherence"){
         plot.destroy();
-        makeuPlot(newSeries);
+        makeuPlot();
       }
     }
     
@@ -256,13 +256,20 @@
       if(val.length === 0) { return; }
       //console.log(val);
       var arr = val.split(",");
-      channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
+      console.log(arr);
+      //channelTags.forEach((row,j) => { channelTags[j].viewing = false; });
       //console.log(arr);
       arr.forEach((item,i) => {
         var dict = item.split(":");
         var found = false;
         let setTags = channelTags.find((o, j) => {
           if(o.ch === parseInt(dict[0])){
+            let otherTags = channelTags.find((p,k) => {
+              if(p.tag === dict[1]){
+                channelTags[k].tag = null;
+                return true;
+              }
+            })
             //console.log(o);
             channelTags[j].tag = dict[1];
             channelTags[j].viewing = true;
@@ -276,42 +283,15 @@
         if (found === false){
           var ch = parseInt(dict[0]);
           if(ch !== NaN) {
-            if((ch > 0) && (ch < nChannels)){
+            if((ch >= 0) && (ch < nChannels)){
               channelTags.push({ch:parseInt(ch), tag: dict[1], viewing: true});
             }
           }
         }
       });
 
-      var newSeries = [{}]; //plot.series;
-      arr.forEach((item,i) => {
-        var found = false;
-        let getTags = channelTags.find((o, j) => {
-        if((o.ch === parseInt(item)) || (o.tag === item)){
-          //console.log(item);
-          newSeries.push({
-            label:"A"+o.ch + ", Tag: "+o.tag,
-            value: (u, v) => v == null ? "-" : v.toFixed(1),
-            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
-          });
-          found = true;
-          return true;
-          }
-        });
-        if (found === false){ //add tag
-          if(parseInt(item) !== NaN){
-            channelTags.push({ch:parseInt(item), tag: null});
-            newSeries.push({
-              label:"A"+parseInt(item) + ", Tag: null",
-              value: (u, v) => v == null ? "-" : v.toFixed(1),
-              stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
-            });
-          }
-          else {
-            alert("Tag not assigned to channel: ", item);
-          }
-        }
-      });
+      //var newSeries = [{}]//plot.series;
+      
       if(graphmode !== "Coherence"){
         plot.destroy();
         makeuPlot();
@@ -350,11 +330,13 @@
       var newSeries = [{}];
       if(series === undefined) {
         channelTags.forEach((row,i) => {
-          newSeries.push({
-            label:"A"+row.ch + ", Tag: "+row.tag,
-            value: (u, v) => v == null ? "-" : v.toFixed(1),
-            stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
-          });
+          if(row.viewing === true) {
+            newSeries.push({
+              label:"A"+row.ch + ", Tag: "+row.tag,
+              value: (u, v) => v == null ? "-" : v.toFixed(1),
+              stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+            });
+          }
         });
       }
       else {
@@ -379,7 +361,9 @@
       ];
 
       channelTags.forEach((tag,i) => {
-        uPlotData.push(bandPassWindow);
+        if(tag.viewing === true) {
+          uPlotData.push(bandPassWindow);
+        }
       })
 
       plot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
@@ -391,7 +375,7 @@
     var deltaSeries = new TimeSeries(),
         thetaSeries = new TimeSeries(),
         alphaSeries = new TimeSeries(),
-        betaSeries = new TimeSeries(),
+        betaSeries  = new TimeSeries(),
         gammaSeries = new TimeSeries();        
 
     var bandchart = new SmoothieChart({ responsive: true,
