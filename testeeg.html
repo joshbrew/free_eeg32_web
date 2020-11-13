@@ -451,7 +451,7 @@
 
     var drawBrainMapPoints = () => {
       brainmapctx.fillStyle = "rgba(0,0,0,0)";
-      brainmapctx.fillRect(0, 0, brainmappointcanvas.width, brainmappointcanvas.height);
+      brainmapctx.clearRect(0, 0, brainmappointcanvas.width, brainmappointcanvas.height);
       atlas.map.forEach((row,i) => {
         brainmapctx.beginPath();
         brainmapctx.fillStyle="rgba(0,0,255,1)";
