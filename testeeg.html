@@ -120,7 +120,7 @@
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       {ch: 5, tag: "T3"},  //Channel 0
-      {ch: 25, tag: "T4"},  //Channel 1
+      {ch: 25, tag: "T4"}  //Channel 1
     ]; 
     /*
       {ch: 2, tag: "Fz"},  //Channel 2 etc.
@@ -545,19 +545,6 @@
         //console.log(coherenceResults);
       }
 
-      //Separate and report channel results by band
-      channelTags.forEach((row,i) => {
-          if((row.tag !== null) && (i < nChannels)){
-            //console.log(tag);
-            channelBands(i,row.tag);
-          }
-          if(row.tag === null){
-            posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function to work
-          }
-        });
-      atlas.shared.bandPassWindows.push(bandPassWindow);//Push the x-axis values for each frame captured as they may change
-      
-
       if(graphmode === "FFT"){
 
         //Animate plot(s)
@@ -566,7 +553,7 @@
         ];
 
         channelTags.forEach((row,i) => {
-          uPlotData.push(posMagsList[row.ch]);
+          uPlotData.push(posMagsList[i]);
         });
         
       }
@@ -588,15 +575,27 @@
           bandPassWindow,
           coherenceResults
         ];
-        plot.setData(uPlotData);
+
       }
 
       //Update visuals
       //Get Coord
       var coord = EEG.getAtlasCoordByTag(channelTags[0].tag);
 
-
+      //console.log(uPlotData);
       plot.setData(uPlotData);
+
+      //Separate and report channel results by band
+      channelTags.forEach((row,i) => {
+          if((row.tag !== null) && (i < nChannels)){
+            //console.log(tag);
+            channelBands(i,row.tag);
+          }
+          if(row.tag === null){
+            posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function to work
+          }
+        });
+      atlas.shared.bandPassWindows.push(bandPassWindow);//Push the x-axis values for each frame captured as they may change
 
       
       var now = Date.now();
