@@ -119,8 +119,8 @@
 
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
-      {ch: 0, tag: "T3"},  //Channel 0
-      {ch: 1, tag: "T4"},  //Channel 1
+      {ch: 5, tag: "T3"},  //Channel 0
+      {ch: 25, tag: "T4"},  //Channel 1
     ]; 
     /*
       {ch: 2, tag: "Fz"},  //Channel 2 etc.
@@ -232,7 +232,7 @@
           if(parseInt(item) !== NaN){
             channelTags.push({ch:parseInt(item), tag: null});
             newSeries.push({
-              label:"A"+parseInt(item) + ", Tag: null",
+              label:"A"+parseInt(item) + ", Tag:" + null,
               value: (u, v) => v == null ? "-" : v.toFixed(1),
               stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
             });
@@ -264,7 +264,7 @@
             return true;
             }
           else if(o.tag === dict[1]){
-            channelTags[i].tag = null; //Set tag to null since it's begin assigned to another channel
+            channelTags[i].tag = null; //Set tag to null since it's being assigned to another channel
           }
         });
         if (found === false){
