@@ -25,6 +25,7 @@ There are two main classes you should know about.
 
 eeg32 in eeg32.js
 * Contains all necessary functions to connect to, parse, and organize the FreeEEG32 data.
+* Decoders can be written for any hardware with serial output and used seamlessly with the rest of the API
 * Increasing number of simple but essential signal analysis functions:
 
 Class instance functions:
