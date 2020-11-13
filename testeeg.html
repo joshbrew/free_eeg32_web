@@ -105,7 +105,7 @@
     var freqStart = 0; //Beginning of DFT frequencies
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
-    var graphmode = "FFT"; //"TimeSeries"
+    var graphmode = "FFT"; //"TimeSeries" "Coherence"
     var fdbackmode = "coherence"; //tg2o
     var nSecGraph = 10; //number of seconds to show on the graph
 
@@ -243,9 +243,10 @@
         }
       });
 
-      plot.destroy();
-      plot = null;
-      makeuPlot(newSeries);
+      if(graphmode !== "Coherence"){
+        plot.destroy();
+        makeuPlot(newSeries);
+      }
     }
     
     document.getElementById("setTags").onclick = () => {
@@ -305,10 +306,11 @@
           }
         }
       });
-
-      plot.destroy();
-      makeuPlot(newSeries);
-      drawBrainMapPoints();
+      if(graphmode !== "Coherence"){
+        plot.destroy();
+        makeuPlot();
+        drawBrainMapPoints();
+      }
     }
 
 
