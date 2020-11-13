@@ -283,7 +283,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	makeAtlas10_20(){
 		// 19 channel coordinate space spaghetti primitive. 
 		// Based on MNI atlas. 
-		return {shared: {sps: this.sps, bandPassWindows:[]}, map:[,
+		return {shared: {sps: this.sps, bandPassWindows:[]}, map:[
 			{tag:"Fp1", data: { x: -21.5, y: 70.2,   z: -0.1,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fp2", data: { x: 28.4,  y: 69.1,   z: -0.4,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fz",  data: { x: 0.6,   y: 40.9,   z: 53.9,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
@@ -414,6 +414,8 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 	//Simple cross correlation.
 	static crosscorrelation(arr1,arr2) {
+
+		//console.time("crosscorrelation");
 		var arr2buf = [...arr2,...Array(arr2.length).fill(0)];
 		var mean1 = this.mean(arr1);
 		var mean2 = this.mean(arr2);
@@ -436,7 +438,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 			correlations.push(r/arrEstsMul);
 		});
 
-		console.timeEnd("crosscorrelation")
+		//console.timeEnd("crosscorrelation");
 		return correlations;
 	}
 

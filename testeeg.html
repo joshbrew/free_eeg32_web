@@ -106,7 +106,7 @@
     var freqEnd = 100; //End of DFT frequencies (max = SPS * 0.5, half the nyquist sampling rate)
 
     var graphmode = "FFT"; //"TimeSeries"
-    var fdbackmode = "alpha_coherence"; //tg2o
+    var fdbackmode = "coherence"; //tg2o
     var nSecGraph = 10; //number of seconds to show on the graph
 
     var viewing = "alpha";
@@ -150,9 +150,9 @@
 
     var anim = null;
 
-    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = requestAnimationFrame(analyzeEEG());} else{alert("connect the EEG first!")}}
+    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = requestAnimationFrame(analyzeEEG);} else{alert("connect the EEG first!")}}
 
-    document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim) }
+    document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim); anim = "cancel"; }
 
     document.getElementById("record").onclick = () => { alert("dummy"); }
 
@@ -499,8 +499,8 @@
         }
       }
       if(fdbackmode === "coherence") {
-        var correlograms
-        var xcorbuf;
+        var correlograms = [];
+        var xcorbuf = [];
         channelTags.forEach((row,i) => {
           var channel = "A"+row.ch;
           var dat = EEG.data[channel].slice(EEG.data.counter - sps, EEG.data.counter);
@@ -520,10 +520,12 @@
       console.time("GPU DFT");
       posMagsList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd)[1];
       console.timeEnd("GPU DFT");
-      console.log("Channels processed: ", buffer.length);
+      console.log("FFTs processed: ", buffer.length);
 
       if(fdbackmode === "coherence"){
         var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs on the end
+	//console.log(posMagsList);
+	//console.log(correlogram_FFTs);
         coherenceResults = []; //Get a total product of all of the correlogram FFT arrays multiplied by all of the signal FFT arrays then check the alpha band for coherence
         correlogram_FFTs.forEach((fft,i) => {
           fft.forEach((elem,j) => {
@@ -535,7 +537,7 @@
             }
           });
         });
-        console.log(coherenceResults);
+        //console.log(coherenceResults);
       }
 
       //Separate and report channel results by band
@@ -544,7 +546,7 @@
             //console.log(tag);
             channelBands(i,row.tag);
           }
-          if(tag === null){
+          if(row.tag === null){
             posMagsList.splice(i,0,null); //Add nulls to the magnitudes lists for the channelBands function to work
           }
         });
@@ -618,7 +620,7 @@
       channelTags.forEach((row,i) => {
         let atlasCoord = atlas.map.find((o, j) => {
           if(o.tag === row.tag){
-            points.push({x:row.data.x*1.5+200, y:200-row.data.y*1.5, intensity:0.7});
+            points.push({x:o.data.x*1.5+200, y:200-o.data.y*1.5, size:10, intensity:0.7});
             if(viewing === "delta"){
               points[points.length - 1].size = o.data.means.delta;
             }
@@ -637,22 +639,22 @@
             points[points.length - 1].size *= 0.001; //Need a better method
 
             simplecoherence *= points[points.length-1].size;
-            
             if(points[points.length - 1].size > 135){
               points[points.length - 1].size = 135;
             }
           }
         });
       });
+	//console.log(points);
 
-      console.log("simple coherence: ", simplecoherence)
+      //console.log("simple coherence: ", simplecoherence)
       
       heatmap.clear();
       heatmap.addPoints(points);
       heatmap.update();
       heatmap.display();
 
-      setTimeout(()=>{anim = requestAnimationFrame(analyzeEEG);},100); //Hard fps limit
+      setTimeout(()=>{if(anim !== "cancel") anim = requestAnimationFrame(analyzeEEG);},10); //Hard fps limit
     }
 
 
