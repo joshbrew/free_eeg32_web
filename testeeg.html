@@ -119,15 +119,17 @@
 
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
-      {ch: 0, tag: "Fp1"},  //Channel 0
-      {ch: 1, tag: "Fp2"},  //Channel 1
+      {ch: 0, tag: "T3"},  //Channel 0
+      {ch: 1, tag: "T4"},  //Channel 1
+    ]; 
+    /*
       {ch: 2, tag: "Fz"},  //Channel 2 etc.
       {ch: 3, tag: "F3"},
       {ch: 4, tag: "F4"},
       {ch: 5, tag: "F7"},
       {ch: 6, tag: "F8"},
       {ch: 7, tag: "Cz"},
-    ]; 
+    */
 
     var atlas = EEG.makeAtlas10_20(); //Make MNI atlas for a 10_20 system
     atlas.shared.sps = EEG.sps;
