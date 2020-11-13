@@ -152,7 +152,7 @@
 
     var anim = null;
 
-    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){anim = requestAnimationFrame(analyzeEEG);} else{alert("connect the EEG first!")}}
+    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){if((anim === null) || (anim === "cancel")) setTimeout(()=>{anim = requestAnimationFrame(analyzeEEG)},200);} else{alert("connect the EEG first!")}}
 
     document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim); anim = "cancel"; }
 
