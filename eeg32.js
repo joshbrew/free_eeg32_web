@@ -535,43 +535,39 @@ class SmoothieChartMaker {
 		}
 
 		if(canvasId !== null){
-			this.makeSmoothieChart()
+			this.makeSmoothieChart(this.canvasId)
 		}
 
 	}
 
-	makeSmoothieChart( 
-		canvasId = null,
-		gridStrokeStyle = 'rgb(125, 0, 0)', 
-		gridFillStyle = 'rgb(10, 10, 10)',
-		labelFillStyle = 'rgb(255, 255, 255)') 
-		{
-			this.chart = new SmoothieChart({ 
-				responsive: true,
-				grid: { strokeStyle:gridStrokeStyle, fillStyle:gridFillStyle,
-				lineWidth: 1, millisPerLine: 500, verticalSections: 6, },
-				labels: { fillStyle: labelFillStyle }
-			});
+	makeSmoothieChart( canvasId = null, gridStrokeStyle = 'rgb(125, 0, 0)', gridFillStyle = 'rgb(10, 10, 10)', labelFillStyle = 'rgb(255, 255, 255)') 
+	{
+		this.chart = new SmoothieChart({ 
+			responsive: true,
+			grid: { strokeStyle:gridStrokeStyle, fillStyle:gridFillStyle,
+			lineWidth: 1, millisPerLine: 500, verticalSections: 6, },
+			labels: { fillStyle: labelFillStyle }
+		});
 
-			this.series.forEach((series, i) => {
-				var stroke = ''; //Set the initial stroke and fill styles to be the same each time
-				var fill = '';
-				if(i === 0) { stroke = 'purple'; fill = 'rgba(128,0,128,0.2)'; }
-				if(i === 1) { stroke = 'orange'; fill = 'rgba(255,128,0,0.2)'; }
-				if(i === 2) { stroke = 'green';  fill = 'rgba(0,255,0,0.2)'; }
-				if(i === 3) { stroke = 'blue';   fill = 'rgba(0,0,255,0.2)' }
-				if(i === 4) { stroke = 'red';    fill = 'rgba(255,0,0,0.2)'}
-				else { 
-					var r = Math.random()*255, g = Math.random()*255, b = Math.random()*255;
-					stroke = 'rgb('+r+","+g+","+b+")"; fill = 'rgba('+r+','+g+','+b+","+"0.2)";
-				}
-				this.seriesColors.push(stroke); // For reference
-				this.chart.addTimeSeries(series, {strokeStyle: stroke, fillStyle = fill, lineWidth = 2 });
-			});
-
-			if(canvasId !== null){
-				this.chart.streamTo(document.getElementById(canvasId), 500);
+		this.series.forEach((series, i) => {
+			var stroke = ''; //Set the initial stroke and fill styles to be the same each time
+			var fill = '';
+			if(i === 0) { stroke = 'purple'; fill = 'rgba(128,0,128,0.2)'; }
+			if(i === 1) { stroke = 'orange'; fill = 'rgba(255,128,0,0.2)'; }
+			if(i === 2) { stroke = 'green';  fill = 'rgba(0,255,0,0.2)'; }
+			if(i === 3) { stroke = 'blue';   fill = 'rgba(0,0,255,0.2)' }
+			if(i === 4) { stroke = 'red';    fill = 'rgba(255,0,0,0.2)'}
+			else { 
+				var r = Math.random()*255, g = Math.random()*255, b = Math.random()*255;
+				stroke = 'rgb('+r+","+g+","+b+")"; fill = 'rgba('+r+','+g+','+b+","+"0.2)";
 			}
+			this.seriesColors.push(stroke); // For reference
+			this.chart.addTimeSeries(series, {strokeStyle: stroke, fillStyle: fill, lineWidth: 2 });
+		});
+
+		if(canvasId !== null){
+			this.chart.streamTo(document.getElementById(canvasId), 500);
+		}
 	}
 
 	streamTo(canvasId = null){
@@ -590,12 +586,12 @@ class SmoothieChartMaker {
 }
 
 //Lightweight plotter based on uplot.life.js
+//TODO - big vertical chart comparing all channel data 
+//E.g. y-shifted series https://leeoniya.github.io/uPlot/demos/y-shifted-series.html
+//Other examples to draw from: https://leeoniya.github.io/uPlot/demos/resize.html
+// https://leeoniya.github.io/uPlot/demos/draw-hooks.html
+// https://leeoniya.github.io/uPlot/demos/latency-heatmap.html
 class uPlotMaker {
-	//TODO - big vertical chart comparing all channel data 
-	//E.g. y-shifted series https://leeoniya.github.io/uPlot/demos/y-shifted-series.html
-	//Other examples to draw from: https://leeoniya.github.io/uPlot/demos/resize.html
-	// https://leeoniya.github.io/uPlot/demos/draw-hooks.html
-	// https://leeoniya.github.io/uPlot/demos/latency-heatmap.html
 	constructor(canvasId = null) {
 		if(!uPlot){
 			console.log("uPlot not detected! Make sure uplot.life.js and uplot.min.css are included in your app!");
@@ -678,7 +674,7 @@ class brainMap {
 		this.pointsCanvas = document.getElementById(this.pointsCanvasId);
 		this.pointsCtx = this.pointsCanvas.getContext("2d"); 
 
-		this.points = [{ x:100, y:100, size:100, intensity:0.7}];
+		this.points = [{ x:100, y:100, size:100, intensity: 0.7 }];
 		this.scale = 1.5; //heatmap scale
 
 	}
