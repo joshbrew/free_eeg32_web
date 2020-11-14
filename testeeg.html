@@ -72,6 +72,12 @@
     /*
       whittle everything down to the bare essentials to make the visuals all compact and summonable - like the rest of my HEG API
       
+      Make a default selector for the web worker to run, test it with a web server. Should alleviate some performance issues.
+      Put visual tools into classes for each tool
+      Make the color bar chart for band averages
+      Make the graph that displays all channels vertically
+
+
     */
 
 
@@ -218,6 +224,7 @@
       arr.forEach((item,i) => {
         var found = false;
         let getTags = channelTags.find((o, j) => {
+
         if((o.ch === parseInt(item)) || (o.tag === item)){
           //console.log(item);
           channelTags[j].viewing = true;
@@ -230,6 +237,8 @@
           return true;
           }
         });
+
+
         if (found === false){ //add tag
           if(parseInt(item) !== NaN){
             channelTags.push({ch:parseInt(item), tag: null, viewing:true});
@@ -381,7 +390,7 @@
     var bandchart = new SmoothieChart({ responsive: true,
       grid: { strokeStyle:'rgb(125, 0, 0)', fillStyle:'rgb(10, 10, 10)',
       lineWidth: 1, millisPerLine: 250, verticalSections: 6, },
-      labels: { fillStyle:'rgb(60, 0, 0)' }
+      labels: { fillStyle:'rgb(255, 255, 255)' }
     });
     
     bandchart.addTimeSeries(deltaSeries, { strokeStyle: 'purple', fillStyle: 'rgba(128,0,128,0.2)', lineWidth: 2 });
@@ -403,7 +412,7 @@
     var alphachart = new SmoothieChart({ responsive: true,
       grid: { strokeStyle:'rgb(0, 0, 125)', fillStyle:'rgb(10, 10, 10)',
       lineWidth: 1, millisPerLine: 250, verticalSections: 6, },
-      labels: { fillStyle:'rgb(60, 0, 0)' }
+      labels: { fillStyle:'rgb(255, 255, 255)' }
     });
     
     alphachart.addTimeSeries(alphaSeries,  { strokeStyle: 'rgba(0, 0, 255, 1)', fillStyle: 'rgba(255, 0, 200, 0.2)', lineWidth: 2 });
@@ -421,19 +430,6 @@
       var sum = arr.reduce((prev,curr)=> curr += prev);
       return sum / arr.length;
     }
-
-    function getAtlasCoordsList(fromAtlas) {
-      var coords = {x: [], y: [], z: []};
-      for(var i = 0; i< fromAtlas.length; i++) {
-        coords.x.push(fromAtlas.map[i].data.x);
-        coords.y.push(fromAtlas.map[i].data.y);
-        coords.z.push(fromAtlas.map[i].data.z);
-      }
-
-      return coords;
-    }
-    
-    var coords = getAtlasCoordsList(atlas);
 
 
     var brainmappointcanvas = document.getElementById("brainmappoints");
@@ -519,8 +515,8 @@
 
       if(fdbackmode === "coherence"){
         var correlogram_FFTs = posMagsList.splice(channelTags.length,channelTags.length); //Splice off the correlogram FFTs on the end
-	//console.log(posMagsList);
-	//console.log(correlogram_FFTs);
+	      //console.log(posMagsList);
+	      //console.log(correlogram_FFTs);
         coherenceResults = []; //Get a total product of all of the correlogram FFT arrays multiplied by all of the signal FFT arrays then check the alpha band for coherence
         correlogram_FFTs.forEach((fft,i) => {
           fft.forEach((elem,j) => {
@@ -575,6 +571,7 @@
       //Update visuals
       //Get Coord
       var coord = EEG.getAtlasCoordByTag(channelTags[0].tag);
+      var coord2 = EEG.getAtlasCoordByTag(channelTags[1].tag);
 
       //console.log(uPlotData);
       plot.setData(uPlotData);
@@ -600,7 +597,7 @@
       gammaSeries.append(now, coord.data.means.gamma[coord.data.means.gamma.length-1]);
 
       //Alpha averages for ADC 0
-      alphaSeries1.append(now, atlas.map[1].data.means.alpha[atlas.map[1].data.means.alpha.length-1]);
+      alphaSeries1.append(now, coord2.data.means.alpha[atlas.map[1].data.means.alpha.length-1]);
       //alphaSeries2.append(now, atlas.map[2].data.means.alpha[atlas.map[2].data.means.alpha.length-1]);
       //alphaSeries3.append(now, atlas.map[3].data.means.alpha[atlas.map[3].data.means.alpha.length-1]);
       //alphaSeries4.append(now, atlas.map[4].data.means.alpha[atlas.map[4].data.means.alpha.length-1]);
@@ -611,7 +608,7 @@
       var simplecoherence = 1;
 
       var points = [];
-
+      
       //normalize the point sizes to a max of 90.
       var viewing = document.getElementById("bandview").value;
 
@@ -652,7 +649,7 @@
       heatmap.update();
       heatmap.display();
 
-      setTimeout(()=>{if(anim !== "cancel") anim = requestAnimationFrame(analyzeEEG);},200); //Hard fps limit
+      setTimeout(()=>{if( anim !== "cancel") anim = requestAnimationFrame(analyzeEEG);},200); //Hard fps limit
     }
 
 
@@ -663,19 +660,19 @@
         if(o.tag === tag){
 	        atlas.map[i].data.times.push(performance.now());
           atlas.map[i].data.amplitudes.push(posMagsList[channel]);
-          var delta = posMagsList[channel].slice( deltaFreqs[0][1], deltaFreqs[1][deltaFreqs[1].length-1]);
+          var delta = posMagsList[channel].slice( deltaFreqs[1][0], deltaFreqs[1][deltaFreqs[1].length-1]);
 	        atlas.map[i].data.slices.delta.push(delta);
           atlas.map[i].data.means.delta.push(mean(delta));
-          var theta = posMagsList[channel].slice( thetaFreqs[0][1], thetaFreqs[1][thetaFreqs[1].length-1]);
+          var theta = posMagsList[channel].slice( thetaFreqs[1][0], thetaFreqs[1][thetaFreqs[1].length-1]);
 	        atlas.map[i].data.slices.theta.push(theta);
           atlas.map[i].data.means.theta.push(mean(theta));
-          var alpha = posMagsList[channel].slice( alphaFreqs[0][1], alphaFreqs[1][alphaFreqs[1].length-1]);
+          var alpha = posMagsList[channel].slice( alphaFreqs[1][0], alphaFreqs[1][alphaFreqs[1].length-1]);
 	        atlas.map[i].data.slices.alpha.push(alpha);
           atlas.map[i].data.means.alpha.push(mean(alpha));
-          var beta  = posMagsList[channel].slice( betaFreqs[0][1],  betaFreqs[1][betaFreqs[1].length-1]);
+          var beta  = posMagsList[channel].slice( betaFreqs[1][0],  betaFreqs[1][betaFreqs[1].length-1]);
 	        atlas.map[i].data.slices.beta.push(beta);
           atlas.map[i].data.means.beta.push(mean(beta));
-          var gamma = posMagsList[channel].slice( gammaFreqs[0][1], gammaFreqs[1][gammaFreqs[1].length-1]);
+          var gamma = posMagsList[channel].slice( gammaFreqs[1][0], gammaFreqs[1][gammaFreqs[1].length-1]);
 	        atlas.map[i].data.slices.gamma.push(gamma);
           atlas.map[i].data.means.gamma.push(mean(gamma));
 	  //console.timeEnd("slicing bands");
