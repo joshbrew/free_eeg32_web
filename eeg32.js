@@ -581,7 +581,7 @@ class SmoothieChartMaker {
 		else { console.log("Needs a canvas id to stream the chart to");}
 	}
 
-	bulkAppend(dat = [0.5]){ //Append single value or array, appends by index in order of series, set others to zero or the last datum if no new data
+	bulkAppend(dat = [0.5]){ //Append single values or arrays, appends to series by dat index, in order of series, set others to zero or the last datum if no new data
 		var now = Date.now()
 		dat.forEach((datum, i) => {
 			this.series[i].append(now, datum);
@@ -591,7 +591,11 @@ class SmoothieChartMaker {
 
 //Lightweight plotter based on uplot.life.js
 class uPlotMaker {
-
+	//TODO - big vertical chart comparing all channel data 
+	//E.g. y-shifted series https://leeoniya.github.io/uPlot/demos/y-shifted-series.html
+	//Other examples to draw from: https://leeoniya.github.io/uPlot/demos/resize.html
+	// https://leeoniya.github.io/uPlot/demos/draw-hooks.html
+	// https://leeoniya.github.io/uPlot/demos/latency-heatmap.html
 	constructor(canvasId = null) {
 		if(!uPlot){
 			console.log("uPlot not detected! Make sure uplot.life.js and uplot.min.css are included in your app!");
@@ -640,7 +644,7 @@ class uPlotMaker {
 		this.plot = new uPlot(uPlotOptions, uPlotData, this.canvasId);
 	}
 
-	//Pass this the channelTags object
+	//Pass this the channelTags object from your eeg32 instance.
 	makeSeriesFromChannelTags(channelTags) { 
 		var newSeries = [{}];
 		channelTags.forEach((row,i) => {
@@ -695,6 +699,7 @@ class brainMap {
 		heatmap.display();
 	}
 
+	//pass this the atlas and channelTags from your eeg32 instance
 	updatePoints(atlas,channelTags) {
 		
 		var width = this.pointsCanvas.width;
@@ -736,7 +741,7 @@ class brainMap {
 }
 
 
-//Makes a color coded bar chart to apply frequency bins to
+//Makes a color coded bar chart to apply frequency bins to for a classic visualization
 class eegBarChart {
 	constructor(canvasId = null) {
 		this.canvas = canvasId;
