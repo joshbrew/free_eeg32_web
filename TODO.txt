@@ -22,7 +22,7 @@ Use cases:
 - Theta-Gamma 2 Octave by Dmitry
 
 Compatibility:
-- Windows has a default driver incompatibility. This does not seem to exist in other software, which may use different drivers.
+- Windows has a default driver incompatibility. This does not seem to persist in some EEG software on Windows, which may use different drivers.
 - Test Mac, Linux is fine
 
 DONE:
