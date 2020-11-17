@@ -25,10 +25,10 @@ There are two main classes you should know about.
 
 eeg32 in eeg32.js
 * Contains all necessary functions to connect to, parse, and organize the FreeEEG32 data.
-* Decoders can be written for any hardware with serial output and used seamlessly with the rest of the API
+* Decoders can be written for any hardware with serial output and used seamlessly with the rest of the API.
 * Increasing number of simple but essential signal analysis functions:
 
-Class instance functions:
+eeg32 class instance functions:
 
 `var eegclass = new eeg32();`
 
@@ -41,7 +41,7 @@ There are a couple handlers you can customize in the serial streaming to handle 
 * `eegclass.onConnectedCallback = () => {console.log("port connected!");}`
 
 Static functions:
-* `eeg32.genSineWave(sampleRate, frequency, seconds, frequency2 (optional));` - generates a sine wave of the given frequencies, with array length equal to sampleRate * seconds. Frequency 2 is optional e.g. for simulating simple noise.
+* `eeg32.genSineWave(sampleRate, frequency, amplitude, seconds, frequency2 (optional), amplitude2 (optional));` - generates a sine wave of the given frequencies, with array length equal to sampleRate * seconds. Frequency 2 is optional e.g. for simulating simple noise.
 * `eeg32.cov2d(mat)` - 2D matrix covariance, pretty fast!
 * `eeg32.crosscorrelation(arr1,arr2)` - returns the cross-correlogram for the two input signals
 * `eeg32.autocorrelation(arr1)` - returns the auto-correlogram for the input signal
@@ -66,6 +66,10 @@ gpuUtils in ./utils/gpuUtils.js
 * `gpu.MultiChannelDFT_BandPass(signalBuffer, nSeconds, freqStart, freqEnd, texOut = false)` - Multi channel DFT with a bandpass filter applied. Input 2D array with rows of equal widths, number of seconds, high pass frequency (lower bound), and low pass frequency (upper bound). Just set the filter to maximum nyquist sampling frequency for no low-pass filtering. Outputs a 2D array with the band pass window frequency distribution in the first index and the list of -positive- amplitudes in the next index.
 
 * More being tested like inverse DFTs or automatic bandpass then inverse dfts, or other combinations. gpujs lets you pass textures of the outputs between kernels with ease which lowers the difficulty for real time DSP. There are also tests in the /other folder e.g. for video convolution or the 128 channel FFT benchmark
+
+Also in eeg32.js, for now you will find many visual classes and some other utilities like sound buffering and geolocation. This includes helpers to make smoothiejs charts, stacked or overlaid uplot charts, brainmaps, and soon colored bar bandpower charts and a theta-gamma 2 octave module for Dmitry.
+The idea is to make it so the analysis and visual tools are both there as needed, I'm still fleshing this concept out but think of a cross between a python scientific package and a web game engine library. My HEG software is essentially this and I want to expand both to then be combined for a WebBCI framework. This will make use of all the best of the web.
+ 
 
 ### notes
 

@@ -13,13 +13,17 @@
     #brainmap {
       position: absolute;
       right: 50px;
-      top: 600px;
+      top: 1600px;
+      width:400px;
+      height:400px;
     }
     #brainmappoints {
       position: absolute;
       right: 50px;
       z-index: 2;
-      top: 600px;
+      top: 1600px;
+      width:400px;
+      height:400px;
     }
 
   </style>
@@ -63,8 +67,8 @@
     <option value="gamma">Gamma</option>
   </select></td></tr>
 </table>
-<canvas id="brainmap" style="width: 400px; height: 400px"></canvas>
-<canvas id="brainmappoints" style="width: 400px; height:400px;"></canvas>
+<canvas id="brainmap"></canvas>
+<canvas id="brainmappoints"></canvas>
 
 <script>
     //TODO
@@ -125,7 +129,9 @@
     //Assign channels in order. Use null for unassigned channels and don't list anything past the last channel you are using
     var channelTags = [ //Connect differentials (- channels) to common reference on each ADC
       {ch: 5, tag: "T3", viewing: true},  //Channel 0
-      {ch: 25, tag: "T4", viewing: true}  //Channel 1
+      {ch: 25, tag: "T4", viewing: true},  //Channel 1
+      {ch: 0, tag: "Fp1", viewing: true},
+      {ch: 1, tag: "Fp2", viewing: true}
     ]; 
     /*
       {ch: 2, tag: "Fz"},  //Channel 2 etc.
@@ -254,8 +260,10 @@
       });
 
       if(graphmode !== "Coherence"){
+        console.time("makeplot");
         plot.destroy();
         makeuPlot();
+        console.timeEnd("makeplot");
       }
     }
     
@@ -333,46 +341,130 @@
 
     var plot = null;
 
+    var sine1 = eeg32.genSineWave(20,2);
+    var sine2 = eeg32.genSineWave(30,4);
+    var sine3 = eeg32.genSineWave(40,3);
+
     //Make uPlot (will need to generalize this stuff for a nicer API to customize plots)
-    var makeuPlot = (series=undefined) => {
+    var makeuPlot = (series=undefined, data=[]) => {
       var newSeries = [{}];
+      var yvalues;
+      
+      //var dat = [bandPassWindow,bandPassWindow,bandPassWindow,bandPassWindow]//data[1+]
+      var dat = [sine1[1],sine2[1],sine3[1],sine1[1]];
+
+      var windows = [];
+      var maxs = [];
+      var mins = [];
+      
+
+      dat.forEach((row,i) => {
+        windows.push(Math.ceil(Math.max(...row)) - Math.min(...row));
+        mins.push(Math.min(...row));
+        maxs.push(Math.max(...row));
+      });
+
+      var max = Math.max(...windows);
+      var min = Math.min(...mins);
+
+      var mapidx=0;
+      var ymapper = (t,j) => { //Pushes the y values up based on the max peak values of all the previous signals inputted
+        var k = 0;
+        var sum = 0;
+        while(k < mapidx){
+          sum += 1;
+          k++;
+        }
+        if(mins[mapidx] < 0) {
+            sum += Math.abs(mins[k])/max;
+        }
+        return (t/max) + sum; //+(Math.abs(min)/max); //+0.5
+       
+      }
+
+      var uPlotData = [ //Dummy data
+        sine1[0]
+      ];
+
+      dat.forEach((row,k) => {
+        uPlotData.push(row.map((t,j) => ymapper(t,j)));
+        mapidx++;
+      })
+
+      //uPlotData.push(bandPassWindow.map((t, j) => bandPassWindow[j] + datidx * scalar[datidx]));
+
+      var datidx = 1;
+
+
       if(series === undefined) {
         channelTags.forEach((row,i) => {
           if(row.viewing === true) {
+            //console.log(datidx)
+            var r = Math.random()*255; var g = Math.random()*255; var b = Math.random()*255;
+            var newLineColor = "rgb("+r+","+g+","+b+")";
+            var newFillColor = "rgba("+r+","+g+","+b+",0.1)"
+            
+            
+            var valuemapper = (u,v,ser,i) => {
+              if(v === null) {
+                return "-";
+              }
+              else {
+                //console.log(v)
+                return dat[ser-1][i].toFixed(1);
+              }
+            }
+
             newSeries.push({
               label:"A"+row.ch + ", Tag: "+row.tag,
-              value: (u, v) => v == null ? "-" : v.toFixed(1),
-              stroke: "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")"
+              stroke: newLineColor,
+              value: valuemapper,
+              fill: newFillColor,
+              fillTo: (u,v) => v-1
+
             });
-          }
+            
+            datidx++;
+          }  
         });
       }
       else {
         newSeries = series;
       }
+
+      //console.log(scalar)
+
       
+
+      yvalues = (u, splits) => splits.map((v,i) => axmapper(v,i));
+
+      var ax=-1;
+      var axmapper = (v,i) => {
+        if(v === Math.floor(v)){
+          if(v < newSeries.length){
+            ax++;
+            return newSeries[v].label;
+          }
+        }
+        else{ return (((v-ax)*(max)+mins[ax])).toFixed(1);}
+      }
+
       var uPlotOptions = {
         title: "EEG Output",
         width: 1000,
-        height: 300,
+        height: 800,
         series: newSeries,
         axes: [
           {
-          scale: "Hz",
-          values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "Hz")
+          scale: "sec",
+          values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "s"),
           },
+          {
+						size: 80,
+            values: yvalues
+          }
         ]
       }
-
-      var uPlotData = [ //Dummy data
-        bandPassWindow
-      ];
-
-      channelTags.forEach((tag,i) => {
-        if(tag.viewing === true) {
-          uPlotData.push(bandPassWindow);
-        }
-      })
 
       plot = new uPlot(uPlotOptions, uPlotData, document.getElementById("adc0") );
 
@@ -462,8 +554,11 @@
     }
 
 
-    getBandFreqs()
+    getBandFreqs();
+
+    console.time("uplotstacked");
     makeuPlot();
+    console.timeEnd("uplotstacked");
     drawBrainMapPoints();
 
 

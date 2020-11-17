@@ -56,7 +56,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
     }
 
     decode(buffer = this.buffer) { //returns true if successful, returns false if not
-
+		
 		var needle = this.searchString
 		var haystack = buffer;
 		var search = this.boyerMoore(needle);
@@ -297,7 +297,8 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 	makeAtlas10_20(){
 		// 19 channel coordinate space spaghetti primitive. 
 		// Based on MNI atlas. 
-		return {shared: {sps: this.sps, bandPassWindows:[]}, map:[
+		return {shared: {sps: this.sps, bandPassWindows:[], bandPassFreqs:{delta:[[],[]],theta:[[],[]], alpha:[[],[]], beta:[[],[]], gamma:[[],[]]} //x axis values and indices for named EEG frequency bands
+		}, map:[
 			{tag:"Fp1", data: { x: -21.5, y: 70.2,   z: -0.1,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fp2", data: { x: 28.4,  y: 69.1,   z: -0.4,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
 			{tag:"Fz",  data: { x: 0.6,   y: 40.9,   z: 53.9,  times: [], amplitudes: [], slices: {delta: [], theta: [], alpha: [], beta: [], gamma: []}, means: {delta: [0], theta: [0], alpha: [0], beta: [0], gamma: [0]}}},
@@ -320,19 +321,41 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 		]};
 
 	}
+
+	getBandFreqs(bandPassWindow) {//Returns an object with the frequencies and indices associated with the bandpass window (for processing the FFT results)
+		var deltaFreqs = [[],[]], thetaFreqs = [[],[]], alphaFreqs = [[],[]], betaFreqs = [[],[]], gammaFreqs = [[],[]]; //x axis values and indices for named EEG frequency bands
+		bandPassWindow.forEach((item,idx) => {
+			if((item >= 0.5) && (item <= 4)){
+			deltaFreqs[0].push(item); deltaFreqs[1].push(idx);
+			}
+			if((item > 4) && (item <= 8)) {
+			thetaFreqs[0].push(item); thetaFreqs[1].push(idx);
+			}
+			if((item > 8) && (item <= 12)){
+			alphaFreqs[0].push(item); alphaFreqs[1].push(idx);
+			}
+			if((item > 12) && (item <= 35)){
+			betaFreqs[0].push(item); betaFreqs[1].push(idx);
+			}
+			if(item > 35) {
+			gammaFreqs[0].push(item); gammaFreqs[1].push(idx);
+			}
+		});
+		return {delta: deltaFreqs, theta: thetaFreqs, alpha: alphaFreqs, beta: betaFreqs, gamma: gammaFreqs}
+	}
 	
 	//----------------------------------------------------------------
 	//-------------------- Static Functions --------------------------
 	//----------------------------------------------------------------
 
 	//Generate sinewave, you can add a noise frequency in too. Array length will be Math.ceil(fs*nSec)
-	static genSineWave(fs=512,freq=20,nSec=1,freq2=0){
+	static genSineWave(freq=20,peakAmp=1,nSec=1,fs=512,freq2=0,peakAmp2=1){
 		var sineWave = [];
 		var t = [];
 		var increment = 1/fs; //x-axis time increment based on sample rate
 		for (var ti = 0; ti < nSec; ti+=increment){ 
-			var amplitude = Math.sin(2*Math.PI*freq*ti);
-			amplitude += Math.sin(2*Math.PI*freq2*ti); //Add interference
+			var amplitude = Math.sin(2*Math.PI*freq*ti)*peakAmp;
+			amplitude += Math.sin(2*Math.PI*freq2*ti)*peakAmp2; //Add interference
 			sineWave.push(amplitude);
 			t.push(ti);
 		}
@@ -509,6 +532,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 
 
+
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 //-------------------------------EEG Visual Classes--------------------------------
@@ -517,30 +541,32 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 
 //Nice time series charts based on smoothiejs
 class SmoothieChartMaker {
-	constructor(nSeries = 1, canvasId=null) {
+	constructor(nSeries = 1, canvasId=null, gridStrokeStyle = 'rgb(125, 125, 125)', gridFillStyle = 'rgb(10, 10, 10)', labelFillStyle = 'rgb(255, 255, 255)') {
 		if(!SmoothieChart){
 			alert("smoothie.js not found, please include it correctly before instantiating this class!");
 			return false;
 		}
 
+		this.canvasId = canvasId;
+		this.canvas = null;
 		this.series = [];
 		this.seriesColors = [];
 		this.chart = null;
 		this.canvasId = canvasId;
 
-
-		for(var n = 0; n < nSeries; n++){
+		for(var n = 0; n < nSeries; n++) {
 			var newseries = new TimeSeries();
 			this.series.push(newseries);
 		}
 
-		if(canvasId !== null){
-			this.makeSmoothieChart(this.canvasId)
+		if(canvasId !== null) {
+			this.canvas = document.getElementById(this.canvasId);
+			this.makeSmoothieChart(this.canvasId, gridStrokeStyle, gridFillStyle, labelFillStyle);
 		}
 
 	}
 
-	makeSmoothieChart( canvasId = null, gridStrokeStyle = 'rgb(125, 0, 0)', gridFillStyle = 'rgb(10, 10, 10)', labelFillStyle = 'rgb(255, 255, 255)') 
+	makeSmoothieChart( canvasId = null, gridStrokeStyle = 'rgb(125, 125, 125)', gridFillStyle = 'rgb(10, 10, 10)', labelFillStyle = 'rgb(255, 255, 255)') 
 	{
 		this.chart = new SmoothieChart({ 
 			responsive: true,
@@ -554,9 +580,9 @@ class SmoothieChartMaker {
 			var fill = '';
 			if(i === 0) { stroke = 'purple'; fill = 'rgba(128,0,128,0.2)'; }
 			if(i === 1) { stroke = 'orange'; fill = 'rgba(255,128,0,0.2)'; }
-			if(i === 2) { stroke = 'green';  fill = 'rgba(0,255,0,0.2)'; }
-			if(i === 3) { stroke = 'blue';   fill = 'rgba(0,0,255,0.2)' }
-			if(i === 4) { stroke = 'red';    fill = 'rgba(255,0,0,0.2)'}
+			if(i === 2) { stroke = 'green';  fill = 'rgba(0,255,0,0.2)';   }
+			if(i === 3) { stroke = 'blue';   fill = 'rgba(0,0,255,0.2)' ;  }
+			if(i === 4) { stroke = 'red';    fill = 'rgba(255,0,0,0.2)';   }
 			else { 
 				var r = Math.random()*255, g = Math.random()*255, b = Math.random()*255;
 				stroke = 'rgb('+r+","+g+","+b+")"; fill = 'rgba('+r+','+g+','+b+","+"0.2)";
@@ -602,14 +628,14 @@ class uPlotMaker {
 		this.plot = null;
 	}
 
-	makeuPlot(series=[{}], data=[], options = null) {
+	makeuPlot(series=[{}], data=[], width=1000, height=400, options = null) {
 		if(series.length < 2) { console.log("Input valid series"); return false;}
 		var uPlotOptions = {};
 		if(options === null){
 			uPlotOptions = {
 				title: "EEG Output",
-				width: 1000,
-				height: 300,
+				width: width,
+				height: height,
 				series: series,
 				axes: [
 				{
@@ -622,7 +648,7 @@ class uPlotMaker {
 
 		var uPlotData = data;
 
-		if(uPlotData.length < series.length - 1){ //Append dummy data if none found
+		if(uPlotData.length < series.length - 1){ //Append dummy data if none or not enough found
 			while(uPlotData.length < series.length - 1){
 				if(uPlotData.length > 0) {
 					uPlotData.push([new Array(uPlotData[0].length).fill(Math.random())]);
@@ -636,8 +662,11 @@ class uPlotMaker {
 			uPlotData.splice(series.length, uPlotData.length - series.length);
 		}
 
-		if(this.plot !== null){ this.plot.destroy(); this.plot = null; }
-		this.plot = new uPlot(uPlotOptions, uPlotData, this.canvasId);
+		//console.log(uPlotData);
+
+		if(this.plot !== null){ this.plot.destroy(); }
+
+		this.plot = new uPlot(uPlotOptions, uPlotData, document.getElementById(this.canvasId));
 	}
 
 	//Pass this the channelTags object from your eeg32 instance.
@@ -654,11 +683,180 @@ class uPlotMaker {
 		  });
 		return newSeries;
 	}
+
+	updateData(data) { // [x,y0,y1,y2,etc]
+		this.plot.setData(data);
+	}
+
+	//Stacked uplot with dynamic y scaling per series. Define either series or channelTags (from the eeg32 instance)
+	makeStackeduPlot = (series=[{}], data=[], options = null, channelTags = null) => {
+		var newSeries = [{}];
+		var serieslen = 0;
+		if(series === newSeries) {
+			if(channelTags === null) { console.log("No series data!"); return; }
+			serieslen = channelTags.length;
+		}
+		var yvalues;
+		
+		var windows = [];
+		var maxs = [];
+		var mins = [];
+
+		var dat = data;
+
+		if((dat.length === 0)) { //No data
+			console.log("No data inputted!");
+			return;
+		}
+
+		dat.forEach((row,i) => {
+			if(i>0){
+				windows.push(Math.ceil(Math.max(...row)) - Math.min(...row));
+				mins.push(Math.min(...row));
+				maxs.push(Math.max(...row));
+		  	}
+		});
+
+		var max = Math.max(...windows);
+
+
+		var mapidx=0;
+		
+		var ymapper = (t,j) => { //Pushes the y values up based on the max peak values of all the previous signals inputted
+			var k = 0;
+			var sum = 0;
+			while(k < mapidx){
+				sum += 1;
+				k++;
+			}
+			if(mins[mapidx] < 0) {
+				sum += Math.abs(mins[k])/max;
+			}
+			return (t/max) + sum; //+(Math.abs(min)/max); //+0.5
+		   
+		}
+
+		var uPlotData = [
+			dat[0]
+		];
+
+		dat.forEach((row) => {
+			uPlotData.push(row.map((t,j) => ymapper(t,j)));
+			mapidx++;
+		  });
+
+		var datidx = 1;
+
+		if(channelTags !== null) {
+			channelTags.forEach((row,i) => {
+				if(row.viewing === true) {
+	
+				var r = Math.random()*255; var g = Math.random()*255; var b = Math.random()*255;
+				var newLineColor = "rgb("+r+","+g+","+b+")";
+				var newFillColor = "rgba("+r+","+g+","+b+",0.1)"
+				
+				var valuemapper = (u,v,ser,i) => {
+					if(v === null) {
+						return "-";
+					}
+					else {
+						//console.log(v)
+						return dat[ser-1][i].toFixed(1);
+					}
+				}
+	
+				newSeries.push({
+					label:"A"+row.ch + ", Tag: "+row.tag,
+					stroke: newLineColor,
+					value: valuemapper,
+					fill: newFillColor,
+					fillTo: (u,v) => v-1
+				});
+				
+				datidx++;
+				}  
+			});
+		}
+		else{
+			newSeries = series;
+		}
+
+		//console.log(newSeries)
+		
+		yvalues = (u, splits) => splits.map((v,i) => axmapper(v,i));
+
+		var ax=-1;
+		var axmapper = (v,i) => {
+		  if(v === Math.floor(v)){
+			if(v < newSeries.length){
+			  ax++;
+			  return newSeries[v].label;
+			}
+		  }
+		  else{ return (((v-ax)*(max)+mins[ax])).toFixed(1);}
+		}
+		
+		var uPlotOptions;
+		if(options === null){
+		uPlotOptions = {
+		  title: "EEG Output",
+		  width: 1000,
+		  height: 800,
+		  series: newSeries,
+		  axes: [
+			{
+			scale: "sec",
+			values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "s"),
+			},
+			{
+			  size: 80,
+			  values: yvalues
+			}
+		  ]
+		}
+		}
+		else { uPlotOptions = options; }
+
+		if(this.plot !== null) { this.plot.destroy();}
+		this.plot = new uPlot(uPlotOptions, uPlotData, document.getElementById(this.canvasId));
+		
+	}
+
+	updateStackedData(dat) {
+		
+		var mapidx=0;
+		
+		var ymapper = (t,j) => { //Pushes the y values up based on the max peak values of all the previous signals inputted
+			var k = 0;
+			var sum = 0;
+			while(k < mapidx){
+				sum += 1;
+				k++;
+			}
+			if(mins[mapidx] < 0) {
+				sum += Math.abs(mins[k])/max;
+			}
+			return (t/max) + sum; //+(Math.abs(min)/max); //+0.5
+		   
+		}
+
+		var uPlotData = [
+			dat[0]
+		];
+
+		dat.forEach((row) => {
+			uPlotData.push(row.map((t,j) => ymapper(t,j)));
+			mapidx++;
+		  });
+
+		this.plot.setData(uPlotData);
+	}
+
 }
 
 
 //heatmap-js based brain mapping with active channel markers (incl assigned ADC input), based on the atlas system in eeg32
-class brainMap {
+class brainMap2D {
 	constructor(heatmapCanvasId = null, pointsCanvasId = null) {
 		if(!createWebGLHeatmap){
 			console.log("webgl-heatmap.js not found! Please include in your app correctly");
@@ -669,13 +867,18 @@ class brainMap {
 		this.pointsCanvasId = pointsCanvasId;
 		this.anim = null;
 
-		this.heatmap = createWebGLHeatmap({canvas: document.getElementById(this.heatmapCanvasId), intensityToAlpha: true});	
+		this.heatmap = null;
+		this.pointsCanvas = null;
+		this.pointsCtx = null;
 
-		this.pointsCanvas = document.getElementById(this.pointsCanvasId);
-		this.pointsCtx = this.pointsCanvas.getContext("2d"); 
+		if((heatmapCanvasId !== null) && (pointsCanvasId !== null)) {
+			this.heatmap = createWebGLHeatmap({canvas: document.getElementById(this.heatmapCanvasId), intensityToAlpha: true});	
+			this.pointsCanvas = document.getElementById(this.pointsCanvasId);
+			this.pointsCtx = this.pointsCanvas.getContext("2d"); 
+		}
 
 		this.points = [{ x:100, y:100, size:100, intensity: 0.7 }];
-		this.scale = 1.5; //heatmap scale
+		this.scale = 1.5; // heatmap scale
 
 	}
 
@@ -688,15 +891,64 @@ class brainMap {
 		this.anim = requestAnimationFrame(draw);
 	}
 
-	updateHeatMap(points) {
-		heatmap.clear();
-		heatmap.addPoints(points);
-		heatmap.update();
-		heatmap.display();
+	genHeatMap(heatmapCanvasId=this.heatmapCanvasId, pointsCanvasId=this.pointsCanvasId) {
+		this.heatmap = createWebGLHeatmap({canvas: document.getElementById(heatmapCanvasId), intensityToAlpha: true});	
+		this.pointsCanvas = document.getElementById(pointsCanvasId);
+		this.pointsCanvas.width = this.heatmap.width;
+		this.pointsCanvas.height = this.heatmap.height;
+		this.pointsCtx = this.pointsCanvas.getContext("2d"); 
+	}
+
+	updateHeatmap(points=this.points) {
+		this.heatmap.clear();
+		this.heatmap.addPoints(points);
+		this.heatmap.update();
+		this.heatmap.display();
+	}
+
+	updateHeatmapFromAtlas(atlas, channelTags, viewing) {
+		var points = [];
+		
+		var width = this.pointsCanvas.width;
+		var height = this.pointsCanvas.height;
+
+		channelTags.forEach((row,i) => {
+			let atlasCoord = atlas.map.find((o, j) => {
+			  if(o.tag === row.tag){
+				points.push({x:o.data.x*1.5+width*.5, y:height*.5-o.data.y*1.5, size:10, intensity:0.7});
+				if(viewing === "delta"){
+				  points[points.length - 1].size = o.data.means.delta;
+				}
+				else if(viewing === "theta"){
+				  points[points.length - 1].size = o.data.means.theta;
+				}
+				else if(viewing === "alpha"){
+				  points[points.length - 1].size = o.data.means.alpha;
+				}
+				else if(viewing === "beta"){
+				  points[points.length - 1].size = o.data.means.beta;
+				}
+				else if(viewing === "gamma"){
+				  points[points.length - 1].size = o.data.means.gamma;
+				}
+				points[points.length - 1].size *= 0.001; //Need a better method
+	
+				//simplecoherence *= points[points.length-1].size;
+				if(points[points.length - 1].size > 135){
+				  points[points.length - 1].size = 135;
+				}
+			  }
+			});
+		  });
+		this.points = points;
+		this.heatmap.clear();
+		this.heatmap.addPoints(this.points); //update size and intensity
+		this.heatmap.update();
+		this.heatmap.display();
 	}
 
 	//pass this the atlas and channelTags from your eeg32 instance
-	updatePoints(atlas,channelTags) {
+	updatePointsFromAtlas(atlas,channelTags) {
 		
 		var width = this.pointsCanvas.width;
 		var height = this.pointsCanvas.height;
@@ -728,10 +980,10 @@ class brainMap {
 	}
 
 	draw = () => {
-		heatmap.clear();
-		heatmap.addPoints(this.points); //update size and intensity
-		heatmap.update();
-		heatmap.display();
+		this.heatmap.clear();
+		this.heatmap.addPoints(this.points); //update size and intensity
+		this.heatmap.update();
+		this.heatmap.display();
 		setTimeout(() => {if(this.anim !== "cancel") this.anim = requestAnimationFrame(draw)},20); // 50 FPS hard limit
 	}
 }

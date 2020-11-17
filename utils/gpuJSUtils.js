@@ -93,13 +93,13 @@ class gpuUtils {
 
 
       //Conjugated real and imaginary parts for iDFT
-      this.gpu.addFunction(function iDFT(amplitude,len,freq){ //inverse DFT to return time domain
+      this.gpu.addFunction(function iDFT(amplitudes,len,freq){ //inverse DFT to return time domain
         var real = 0;
         var imag = 0;
         for(var i = 0; i<len; i++){
           var shared = 6.28318530718*freq*i/len; //this.thread.x is the target frequency
-          real = real+amplitude[i]*Math.sin(shared);
-          imag = imag-amplitude[i]*Math.cos(shared);
+          real = real+amplitudes[i+(len-1)*n]*Math.cos(shared);
+          imag = amplitudes[i+(len-1)*n]*Math.sin(shared)-imag;  
         }
         //var mag = Math.sqrt(real[k]*real[k]+imag[k]*imag[k]);
         return [real,imag]; //mag(real,imag)
@@ -110,8 +110,8 @@ class gpuUtils {
         var imag = 0;
         for(var i = 0; i<len; i++){
           var shared = 6.28318530718*freq*i/len; //this.thread.x is the target frequency
-          real = real+amplitudes[i+(len-1)*n]*Math.sin(shared);
-          imag = imag-amplitudes[i+(len-1)*n]*Math.cos(shared);  
+          real = real+amplitudes[i+(len-1)*n]*Math.cos(shared);
+          imag = amplitudes[i+(len-1)*n]*Math.sin(shared)-imag;  
         }
         //var mag = Math.sqrt(real[k]*real[k]+imag[k]*imag[k]);
         return [imag,real]; //mag(real,imag)
