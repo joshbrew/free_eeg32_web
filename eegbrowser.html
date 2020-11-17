@@ -219,8 +219,6 @@
       brainMap.updateHeatmapFromAtlas(EEG.atlas,EEG.channelTags,viewing);
     }
 
-
-    var newData = true;
     var analyse = false;
     var analyzeloop = null;
 
@@ -231,7 +229,7 @@
 //---------------------------------------
 
 
-
+    //Should do a lot of this with a worker to keep the UI smooth and prevent hangups
     var analysisLoop = () => {
         if(analyse === true) {
             var buffer = [];
@@ -353,6 +351,7 @@
           setTimeout(()=>{analyzeloop = requestAnimationFrame(analysisLoop)},200);
         } 
         else{alert("connect the EEG first!")}}
+      }
 
     document.getElementById("stop").onclick = () => { cancelAnimationFrame(analyzeloop); analyze = false; }
 
@@ -373,8 +372,6 @@
 
       EEG.getBandFreqs(bandPassWindow); //Update bands accessed by the atlas for averaging
     }
-
-
 
     document.getElementById("mode").onclick = () => {
       if(graphmode === "FFT"){
