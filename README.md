@@ -73,7 +73,7 @@ The idea is to make it so the analysis and visual tools are both there as needed
 
 ### notes
 
-There is also my own GPU FFT solution in testeeg.html which is fast enough to run a bandpass FFT on all channels simultaneously in less than 50ms - 100ms on average (tested on RTX 2060) even on 128 channels. The bandpass part still needs some optimizing for massive datasets but works fine for <=1 second of data at any sample rate. For multiple seconds of data it takes the product of overlapping sections on the CPU, which I should do on the GPU to make it seamless.
+There is also my own GPU FFT solution in testeeg.html which is fast enough to run a bandpass FFT on all channels simultaneously in less than 50ms - 100ms on average (tested on RTX 2060) even on 128 channels. The bandpass part still needs some optimizing for massive datasets but works fine for <=1 second of data at any sample rate. For multiple seconds of data it takes the product of overlapping FFT sections on the CPU, which I should do on the GPU to make it seamless.
 
 Below is an image of a working plotter test, showing a 0-100Hz bandpass on 1 second of data, and then the isolated alpha frequencies. as well as the different bands on a single channel.
 You can see a peak at 60Hz which is from AC power interference, and a simulated Alpha peak by tapping on the electrodes really fast :-P You can see performance in the bottom right. 
