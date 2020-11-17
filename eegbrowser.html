@@ -226,6 +226,10 @@
 
 
 
+//---------------------------------------
+//----------- PERFORM ANALYSIS ----------
+//---------------------------------------
+
 
 
     var analysisLoop = () => {
@@ -257,7 +261,7 @@
             }
 
             console.time("GPU DFT");
-            posFFTList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd)[1];
+            posFFTList = gpu.MultiChannelDFT_BandPass(buffer, nSec, freqStart, freqEnd)[1]; // Mass FFT
             console.timeEnd("GPU DFT");
             console.log("FFTs processed: ", buffer.length);
 
@@ -294,7 +298,7 @@
 
             }
 
-            else if (graphmode === "TimeSeries") {
+            else if ((graphmode === "TimeSeries") || (graphmode === "Stacked")) {
                 var nsamples = Math.floor(sps*nSecGraph);
 
                 uPlotData = [
@@ -309,10 +313,7 @@
             }
 
             else if (graphmode === "Coherence") {
-                uPlotData = [
-                    bandPassWindow,
-                    coherenceResults
-                ];
+                uPlotData = coherenceResults;
             }
 
              //Separate and report channel results by band
@@ -339,16 +340,21 @@
     }
 
 
+  //---------------------------------------
+  //-------------- UI SETUP ---------------
+  //---------------------------------------
 
-    //UI Setup
-    
     document.getElementById("connect").onclick = () => {EEG.setupSerialAsync();}
 
-    var anim = null;
+    document.getElementById("analyze").onclick = () => {
+      if(EEG.port !== null){
+        if((analyzeloop === null) || (analyze === false)) {
+          analyze = true;
+          setTimeout(()=>{analyzeloop = requestAnimationFrame(analysisLoop)},200);
+        } 
+        else{alert("connect the EEG first!")}}
 
-    document.getElementById("analyze").onclick = () => {if(EEG.port !== null){if((anim === null) || (anim === "cancel")) setTimeout(()=>{anim = requestAnimationFrame(analyzeEEG)},200);} else{alert("connect the EEG first!")}}
-
-    document.getElementById("stop").onclick = () => { cancelAnimationFrame(anim); anim = "cancel"; }
+    document.getElementById("stop").onclick = () => { cancelAnimationFrame(analyzeloop); analyze = false; }
 
     document.getElementById("record").onclick = () => { alert("dummy"); }
 
@@ -365,8 +371,10 @@
       freqEnd = freq1;
       bandPassWindow = gpu.bandPassWindow(freq0,freq1,sps);
 
-      getBandFreqs(); //Update bands accessed by the atlas for averaging
+      EEG.getBandFreqs(bandPassWindow); //Update bands accessed by the atlas for averaging
     }
+
+
 
     document.getElementById("mode").onclick = () => {
       if(graphmode === "FFT"){
@@ -406,11 +414,15 @@
 
     }
 
+
+
     document.getElementById("tg2o").onclick = () => {
       sounds = new SoundJS();
 
       //setup tg2o visuals
     }
+
+
 
     document.getElementById("setChannelView").onclick = () => {
       var val = document.getElementById("channelView").value;
@@ -467,6 +479,8 @@
       }
     }
     
+
+
     document.getElementById("setTags").onclick = () => {
       var val = document.getElementById("channelTags").value;
       if(val.length === 0) { return; }
