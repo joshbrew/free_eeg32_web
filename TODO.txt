@@ -26,7 +26,7 @@ Compatibility:
 - Test Mac, Linux is fine
 
 DONE:
-- GPU FFTs + bandpass, handles an arbitrary number of FFTs in <100ms on average. Tested up to 128 channels of simulated data. 
+- GPU FFTs + bandpass, handles an arbitrary number of FFTs in 20ms-100ms on average depending on size (<20ms usually for a single channel, it beats jsfft). Tested up to 128 channels of simulated data. 
 - Coherence
 - uPlot for live time series charts for any number of channels. 
     -- FFT plots, raw data plot, stacked raw data plot (was a pain in the ass but looks good), coherence plot
