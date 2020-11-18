@@ -65,7 +65,7 @@ gpuUtils in ./utils/gpuUtils.js
 
 * `gpu.MultiChannelDFT_BandPass(signalBuffer, nSeconds, freqStart, freqEnd, texOut = false)` - Multi channel DFT with a bandpass filter applied. Input 2D array with rows of equal widths, number of seconds, high pass frequency (lower bound), and low pass frequency (upper bound). Just set the filter to maximum nyquist sampling frequency for no low-pass filtering. Outputs a 2D array with the band pass window frequency distribution in the first index and the list of -positive- amplitudes in the next index.
 
-* More being tested like inverse DFTs or automatic bandpass then inverse dfts, or other combinations. gpujs lets you pass textures of the outputs between kernels with ease which lowers the difficulty for real time DSP. There are also tests in the /other folder e.g. for video convolution or the 128 channel FFT benchmark
+* More being tested like inverse DFTs or automatic bandpass then inverse dfts via pipelining, or other combinations. gpujs lets you pass textures of the outputs between kernels with ease which lowers the difficulty for real time DSP. There are also tests in the /other folder e.g. for video convolution or the 128 channel FFT benchmark
 
 Also in eeg32.js, for now you will find many visual classes and some other utilities like sound buffering and geolocation. This includes helpers to make smoothiejs charts, stacked or overlaid uplot charts, brainmaps, and soon colored bar bandpower charts and a theta-gamma 2 octave module for Dmitry.
 The idea is to make it so the analysis and visual tools are both there as needed, I'm still fleshing this concept out but think of a cross between a python scientific package and a web game engine library. My HEG software is essentially this and I want to expand both to then be combined for a WebBCI framework. This will make use of all the best of the web.
@@ -73,7 +73,7 @@ The idea is to make it so the analysis and visual tools are both there as needed
 
 ### notes
 
-There is also my own GPU FFT solution in testeeg.html which is fast enough to run a bandpass FFT on all channels simultaneously in less than 50ms - 100ms on average (tested on RTX 2060) even on 128 channels. The bandpass part still needs some optimizing for massive datasets but works fine for <=1 second of data at any sample rate. For multiple seconds of data it takes the product of overlapping sections on the CPU, which I should do on the GPU to make it seamless.
+There is also my own GPU FFT solution in testeeg.html which is fast enough to run a bandpass FFT on all channels simultaneously in less than 50ms - 100ms on average (tested on RTX 2060) even on 128 channels. The bandpass part still needs some optimizing for massive datasets but works fine for <=1 second of data at any sample rate. For multiple seconds of data it takes the product of overlapping FFT sections on the CPU, which I should do on the GPU to make it seamless.
 
 Below is an image of a working plotter test, showing a 0-100Hz bandpass on 1 second of data, and then the isolated alpha frequencies. as well as the different bands on a single channel.
 You can see a peak at 60Hz which is from AC power interference, and a simulated Alpha peak by tapping on the electrodes really fast :-P You can see performance in the bottom right. 
