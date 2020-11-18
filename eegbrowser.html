@@ -83,37 +83,50 @@
     }
     catch (err) { alert("gpu.js utils error: ", err); }
 
-    var threads = 2;
+    var threads = 1;
     var THREAD = new Multithread(threads);
 
+    /*
+    var worker = new Worker('./utils/gpuworker.js');
+    worker.onmessage = function(e) {
+      var result = e.data;
+      console.log(result);
+    };
+    */
+
+    //I recommend only using the GPU functions for non-real time processing, trying to use this live is not fast enough as it creates new gpu instances every time.
+    //For faster GPU threading use the gpuworker.js and normal WebWorkers
     var workerThreads = THREAD.process(
       function (args) {
-
-        importScripts(args.url + 'eeg32.js');
+        console.time("workerThread");
+        if(typeof(eeg32) === 'undefined') importScripts(args.url + 'eeg32.js');
         
-      //Receive data like e.data = {foo: "cov1d", input: [arr1,arr2] or [mat1]}
+        //Receive data like e.data = {foo: "cov1d", input: [arr1,arr2] or [mat1]}
         var output = {};
 
         if(args.foo === "xcor"){ output = eeg32.crosscorrelation(args.input[0],args.input[1]);} //Takes 2 1D arrays
         else if(args.foo === "autocor"){ output = eeg32.autocorrelation(args.input);}      //Takes 1 1D array
         else if(args.foo === "cov1d"){ output = eeg32.cov1d(args.input[0],args.input[1]);} //Takes 2 1D arrays
         else if(args.foo === "cov2d"){ output = eeg32.cov2d(args.input); }              //Takes 1 2D array with equal width rows
-        else if(args.foo === "sma"){output = eeg32.sma(args.input[0],args.input[1]);}   //Takes 1 1D array and an sma window size
+        else if(args.foo === "sma"){ output = eeg32.sma(args.input[0],args.input[1]);}   //Takes 1 1D array and an sma window size
         else if(args.foo === "dft"){ //Takes 1 1D array and the sample rate
-          importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
-          var gpu = new gpuUtils(); 
+          if(typeof(GPU) === 'undefined') importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
+          var gpu = new gpuUtils();
+          
           output = gpu.gpuDFT(args.input[0],args.input[1]); 
         }              
         else if(args.foo === "multidft") { //Takes 1 2D array with equal width rows, and the number of seconds of data being given
-          importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
+          if(typeof(GPU) === 'undefined') importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
           var gpu = new gpuUtils(); 
           output = gpu.MultiChannelDFT(args.input[0],args.input[1]);
         }  
         else if(args.foo === "multibandpassdft") { //Accepts 1 2D array of equal width, number of seconds of data, beginning frequency, ending frequency
-          importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
+          if(typeof(GPU) === 'undefined') importScripts(args.url + 'utils/gpu-browser.min.js',args.url + 'utils/gpuJSUtils.js'); 
           var gpu = new gpuUtils(); 
           output = gpu.MultiChannelDFT_Bandpass(args.input[0],args.input[1],args.input[2],args.input[3]);} 
         else {return "function not defined"}
+
+        console.timeEnd("workerThread");
 
         return output;
 
@@ -126,13 +139,15 @@
     var localpath = full.substr(0,full.lastIndexOf("/") + 1);
 
     console.time("threadtest");
-    workerThreads({foo:"dft", input:[[1,2,3,4,5,4,3,2,1],10], url: localpath});
+    workerThreads({foo:"dft", input:[[[1,2,3,4,5,4,3,2,1],[1,2,3,4,5,4,3,2,1]],10], url: localpath});
     console.timeEnd("threadtest");
+
 
     var postToWorker = (foo,input) => {
       var path = localpath;
       workerThreads({foo:foo, input:input, url: path});
     }
+
 
 
     var nChannels = 32; //Number of channels to sample
@@ -575,8 +590,6 @@
         uplotter.makeStackeduPlot(undefined, uPlotData, undefined, EEG.channelTags);
       }
     }
-
-
 
     </script>
 
