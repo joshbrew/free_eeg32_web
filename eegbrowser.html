@@ -86,17 +86,25 @@
     var threads = 1;
     var THREAD = new Multithread(threads);
 
-    /* //WebWorker only works when hosted (e.g. with node)
-    var gpuworker = new Worker('./utils/gpuworker.js');
+    //WebWorker only works when hosted (e.g. with node)
     
-    gpuworker.onmessage = function(e) {
-      var result = e.data;
-      console.log(result);
-    };
-    */
+    try {
+      window.worker = [];
+      for(var i = 0; i< threads; i++){
+        window.worker.push(new Worker('./utils/eegworker.js'));
+        worker[i].onmessage = function(e) {
+          var result = e.data;
+          console.log(result);
+        };
+      }
+      
+    }
+    catch (err) {
+      window.worker = undefined;
+      console.log(err);
+    }
 
-    //I recommend only using the GPU functions for non-real time processing, trying to use this live is not fast enough as it creates new gpu instances every time.
-    //For faster GPU threading use the gpuworker.js and normal WebWorkers
+    //Not super fast on local server, need to test on hosted as the blob method gets instantiated every time and slows down gpu calls.
     var workerThreads = THREAD.process(
       function (args) {
         console.time("workerThread");
@@ -140,14 +148,14 @@
     var localpath = full.substr(0,full.lastIndexOf("/") + 1);
 
     console.time("threadtest");
-    workerThreads({foo:"dft", input:[[[1,2,3,4,5,4,3,2,1],[1,2,3,4,5,4,3,2,1]],10], url: localpath});
+    workerThreads({foo:"xcor", input:[[1,2,3,4,5,4,3,2,1],[1,2,3,4,5,4,3,2,1]], url: localpath});
     console.timeEnd("threadtest");
 
     //foo options: "xcor, autocor, cov1d, cov2d, sma, dft, multidft, multibandpassdft"
     var postToWorker = (foo,input) => {
       var path = localpath;
-      if((typeof(worker) !== 'undefined') && ((foo === "dft") || (foo === "multidft") || (foo === "multibandpassdft"))) {
-        gpuworker.postMessage({foo:foo, input:input });
+      if((typeof(worker) !== 'undefined')) {
+        gpuworker[0].postMessage({foo:foo, input:input});
       }
       else {
         workerThreads({foo:foo, input:input, url: path});
