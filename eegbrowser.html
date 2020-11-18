@@ -86,9 +86,10 @@
     var threads = 1;
     var THREAD = new Multithread(threads);
 
-    /*
-    var worker = new Worker('./utils/gpuworker.js');
-    worker.onmessage = function(e) {
+    /* //WebWorker only works when hosted (e.g. with node)
+    var gpuworker = new Worker('./utils/gpuworker.js');
+    
+    gpuworker.onmessage = function(e) {
       var result = e.data;
       console.log(result);
     };
@@ -142,10 +143,15 @@
     workerThreads({foo:"dft", input:[[[1,2,3,4,5,4,3,2,1],[1,2,3,4,5,4,3,2,1]],10], url: localpath});
     console.timeEnd("threadtest");
 
-
+    //foo options: "xcor, autocor, cov1d, cov2d, sma, dft, multidft, multibandpassdft"
     var postToWorker = (foo,input) => {
       var path = localpath;
-      workerThreads({foo:foo, input:input, url: path});
+      if((typeof(worker) !== 'undefined') && ((foo === "dft") || (foo === "multidft") || (foo === "multibandpassdft"))) {
+        gpuworker.postMessage({foo:foo, input:input });
+      }
+      else {
+        workerThreads({foo:foo, input:input, url: path});
+      }
     }
 
 

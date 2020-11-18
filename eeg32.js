@@ -542,7 +542,7 @@ class eeg32 { //Contains structs and necessary functions/API calls to analyze se
 //Nice time series charts based on smoothiejs
 class SmoothieChartMaker {
 	constructor(nSeries = 1, canvasId=null, gridStrokeStyle = 'rgb(125, 125, 125)', gridFillStyle = 'rgb(10, 10, 10)', labelFillStyle = 'rgb(255, 255, 255)') {
-		if(!SmoothieChart){
+		if(typeof(SmoothieChart) === 'undefined'){
 			alert("smoothie.js not found, please include it correctly before instantiating this class!");
 			return false;
 		}
@@ -619,7 +619,7 @@ class SmoothieChartMaker {
 // https://leeoniya.github.io/uPlot/demos/latency-heatmap.html
 class uPlotMaker {
 	constructor(canvasId = null) {
-		if(!uPlot){
+		if(typeof(uPlot) === 'undefined'){
 			console.log("uPlot not detected! Make sure uplot.life.js and uplot.min.css are included in your app!");
 			return false;
 		}
@@ -858,7 +858,7 @@ class uPlotMaker {
 //heatmap-js based brain mapping with active channel markers (incl assigned ADC input), based on the atlas system in eeg32
 class brainMap2D {
 	constructor(heatmapCanvasId = null, pointsCanvasId = null) {
-		if(!createWebGLHeatmap){
+		if(typeof(createWebGLHeatmap) === 'undefined'){
 			console.log("webgl-heatmap.js not found! Please include in your app correctly");
 			return false;
 		}

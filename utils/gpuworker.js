@@ -5,7 +5,7 @@ importScripts(localpath+"gpu-browser.min.js",localpath+"gpuJSUtils.js");
 
 const gpu = new gpuUtils();
 
-onmessage = function(e) {
+onmessage = function(args) {
   // define gpu instance
     var output = 0;
 
