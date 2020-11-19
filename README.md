@@ -1,7 +1,7 @@
 # free_eeg32_web
 [FreeEEG32](https://github.com/neuroidss/freeeeg32_beta) javascript instance using the new Web Serial API (new chromium feature). 
 
-[New Repo](https://github.com/moothyknight/eegpwa)
+[Moved to new repo](https://github.com/moothyknight/eegpwa) to expand into a node app with proper multitheading
 
 ## Purpose
 
